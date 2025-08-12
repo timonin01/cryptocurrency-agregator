@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детальная информация - Crypto Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .crypto-card { background: rgba(255,255,255,0.95); border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .price-up { color: #28a745; }
+        .price-down { color: #dc3545; }
+        .nav-link { color: white; }
+        .nav-link:hover { color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand text-white" href="/">Crypto Tracker</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/">Главная</a>
+                <a class="nav-link active" href="/crypto.html">Детали</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="crypto-card p-4 mb-4">
+                    <h2 class="text-center">Детальная информация о криптовалютах</h2>
+                    <div class="text-center mb-3">
+                        <small class="text-muted">Обновлено: <span id="lastUpdate">-</span></small>
+                        <button class="btn btn-primary ms-3" onclick="loadData()">Обновить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="crypto-card p-4">
+                    <h4>Статус подключения</h4>
+                    <div id="statusInfo">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4" id="cryptoContainer"></div>
+    </div>
+
+    <script>
+        async function loadData() {
+            try {
+                // Загружаем данные о криптовалютах
+                const response = await fetch('/api/v1/data/tickers');
+                const data = await response.json();
+                renderCards(data);
+                
+                // Загружаем статус
+                const statusResponse = await fetch('/api/v1/data/status');
+                const status = await statusResponse.json();
+                renderStatus(status);
+                
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function renderStatus(status) {
+            const statusInfo = document.getElementById('statusInfo');
+            const isConnected = status.websocketConnected;
+            
+            statusInfo.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="badge ${isConnected ? 'bg-success' : 'bg-warning'} me-2">
+                        ${isConnected ? 'WebSocket' : 'REST API'}
+                    </div>
+                    <span>${isConnected ? 'Подключен к Binance WebSocket' : 'Используется REST API'}</span>
+                </div>
+                <small class="text-muted">Timestamp: ${new Date(status.timestamp).toLocaleString('ru-RU')}</small>
+            `;
+        }
+
+        function renderCards(data) {
+            const container = document.getElementById('cryptoContainer');
+            container.innerHTML = '';
+            
+            data.forEach(crypto => {
+                const changePercent = parseFloat(crypto.priceChangePercent);
+                const changeClass = changePercent >= 0 ? 'price-up' : 'price-down';
+                
+                container.innerHTML += `
+                    <div class="col-lg-6 col-12 mb-4">
+                        <div class="crypto-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>${crypto.symbol}</h4>
+                                <span class="badge bg-primary">Binance</span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="h3 mb-2">$${parseFloat(crypto.lastPrice).toFixed(2)}</div>
+                                    <div class="${changeClass} h6">${changePercent.toFixed(2)}%</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="small text-muted">Максимум 24ч</div>
+                                    <div class="fw-bold">$${parseFloat(crypto.highPrice).toFixed(2)}</div>
+                                    <div class="small text-muted mt-2">Минимум 24ч</div>
+                                    <div class="fw-bold">$${parseFloat(crypto.lowPrice).toFixed(2)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="small text-muted">Объем торгов 24ч</div>
+                                        <div class="fw-bold">${parseFloat(crypto.volume).toLocaleString()}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="small text-muted">Время обновления</div>
+                                        <div class="fw-bold">${new Date(crypto.timestamp).toLocaleTimeString('ru-RU')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Загрузить данные при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadData);
+        
+        // Обновлять каждые 15 секунд
+        setInterval(loadData, 15000);
+    </script>
+</body>
+</html> 

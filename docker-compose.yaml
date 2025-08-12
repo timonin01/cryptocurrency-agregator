@@ -1,0 +1,41 @@
+networks:
+  tim-network:
+    driver: bridge
+
+services:
+  redis:
+    networks: [ tim-network ]
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    command: redis-server --requirepass SecurePass123 --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "SecurePass123", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+
+  data-fetcher-app:
+    networks: [ tim-network ]
+    container_name: data-fetcher-app
+    image: data-fetcher-app:1.0.0
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PASSWORD=SecurePass123
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  redis_data:

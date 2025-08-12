@@ -1,0 +1,4 @@
+rootProject.name = 'aggregator'
+include 'data-fetcher-service'
+include 'notification-service'
+

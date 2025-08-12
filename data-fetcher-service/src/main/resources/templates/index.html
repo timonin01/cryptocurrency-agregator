@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Tracker - Binance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .crypto-card { background: rgba(255,255,255,0.95); border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .price-up { color: #28a745; }
+        .price-down { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="crypto-card p-4 mb-4">
+                    <h2 class="text-center">Курсы криптовалют Binance</h2>
+                    <div class="text-center mb-3">
+                        <small class="text-muted">Обновлено: <span id="lastUpdate">-</span></small>
+                        <button class="btn btn-primary ms-3" onclick="loadData()">Обновить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="cryptoContainer"></div>
+    </div>
+
+    <script>
+        async function loadData() {
+            try {
+                const response = await fetch('/api/v1/data/tickers');
+                const data = await response.json();
+                renderCards(data);
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function renderCards(data) {
+            const container = document.getElementById('cryptoContainer');
+            container.innerHTML = '';
+            
+            data.forEach(crypto => {
+                const changePercent = parseFloat(crypto.priceChangePercent);
+                const changeClass = changePercent >= 0 ? 'price-up' : 'price-down';
+                
+                container.innerHTML += `
+                    <div class="col-lg-4 col-md-6 col-12 mb-4">
+                        <div class="crypto-card p-4">
+                            <h5>${crypto.symbol}</h5>
+                            <div class="h4">$${parseFloat(crypto.lastPrice).toFixed(2)}</div>
+                            <div class="${changeClass}">${changePercent.toFixed(2)}%</div>
+                            <div class="mt-2">
+                                <small>Макс: $${parseFloat(crypto.highPrice).toFixed(2)}</small><br>
+                                <small>Мин: $${parseFloat(crypto.lowPrice).toFixed(2)}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Загрузить данные при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadData);
+        
+        // Обновлять каждые 10 секунд
+        setInterval(loadData, 10000);
+    </script>
+</body>
+</html> 

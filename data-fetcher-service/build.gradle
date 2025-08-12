@@ -1,0 +1,87 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version "3.4.5"
+    id 'com.palantir.docker' version '0.35.0'
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21)) // Use JDK 21
+    }
+}
+
+compileJava {
+    options.encoding = "UTF-8"
+}
+
+compileTestJava {
+    options.encoding = "UTF-8"
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    set("springBootVersion", "3.4.5")
+}
+
+dependencies {
+
+    // Java WebSocket (Tyrus)
+    implementation ('org.java-websocket:Java-WebSocket:1.5.3')
+
+    implementation "org.springframework.boot:spring-boot-starter-webflux:$springBootVersion"
+
+    // AWS SDK S3
+    implementation ('software.amazon.awssdk:s3:2.21.24')
+
+//    implementation('mysql:mysql-connector-java:8.0.33')
+//    implementation('org.hibernate:hibernate-core:6.5.0.Final')
+//    implementation ('org.liquibase:liquibase-core:4.27.0')
+//    implementation('com.h2database:h2:2.2.224')
+
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.redisson:redisson-spring-boot-starter:3.23.2")
+    implementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
+    implementation ('org.springframework:spring-tx:6.1.6')
+    implementation ("org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion")
+
+    // Для работы с JSON
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("org.springframework.boot:spring-boot-starter-cache:$springBootVersion")
+
+    compileOnly('org.projectlombok:lombok:1.18.32')
+    annotationProcessor('org.projectlombok:lombok:1.18.32')
+
+    testCompileOnly('org.projectlombok:lombok:1.18.32')
+    testAnnotationProcessor('org.projectlombok:lombok:1.18.32')
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    enabled = false
+}
+
+bootJar {
+    enabled = true
+    archiveBaseName = 'data-fetcher-app'
+    archiveVersion = '1.0.0'
+}
+
+dockerPrepare {
+    dependsOn bootJar
+}
+
+docker {
+    dependsOn bootJar
+    name "reward-calculation-app:1.0.2"
+    files "build/libs/data-fetcher-app-1.0.0.jar"
+    buildArgs(['JAR_FILE': "data-fetcher-app-1.0.0.jar"])
+}

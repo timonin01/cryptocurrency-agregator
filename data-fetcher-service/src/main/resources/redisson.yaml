@@ -1,0 +1,6 @@
+singleServerConfig:
+  address: "redis://redis:6379"
+  password: "SecurePass123"
+  connectionMinimumIdleSize: 5
+  connectionPoolSize: 10
+  subscriptionConnectionPoolSize: 5
