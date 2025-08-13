@@ -1,7 +1,7 @@
-package org.fetcher.domain;
+package org.fetcher.client.binance;
 
 public record BinanceTickerResponse(
-        String symbol,
+        String cryptocurrency,
         String lastPrice,
         String highPrice,
         String lowPrice,

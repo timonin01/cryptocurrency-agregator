@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public record TickerData(
-        String symbol,
+        String exchangeName,
+        String cryptocurrency,
         BigDecimal lastPrice,
         BigDecimal highPrice,
         BigDecimal lowPrice,

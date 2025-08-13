@@ -3,6 +3,7 @@ package org.fetcher.client.binance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
-public class BinanceWebSocketClient {
+public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
     private final String[] symbols;
@@ -24,19 +25,24 @@ public class BinanceWebSocketClient {
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
+    private final boolean binanceWebSocketClientEnabled;
+
     public BinanceWebSocketClient(@Value("${binance.websocket-url}") String websocketUrl,
-                                  @Value("${binance.symbols}") String symbols) {
+                                  @Value("${binance.symbols}") String symbols,
+                                  @Value("${binance.websocket-enabled}") boolean binanceWebSocketClientEnabled) {
         this.websocketUrl = websocketUrl;
         this.symbols = symbols.split(",");
         this.objectMapper = new ObjectMapper();
+        this.binanceWebSocketClientEnabled = binanceWebSocketClientEnabled;
     }
 
+    @Override
     public void connect(Consumer<TickerData> tickerDataConsumer) {
         this.tickerDataConsumer = tickerDataConsumer;
         try {
             String message = createSubscriptionMessage();
             String fullUrl = websocketUrl + "/" + message;
-            
+
             webSocketClient = new WebSocketClient(new URI(fullUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
@@ -89,6 +95,7 @@ public class BinanceWebSocketClient {
     private TickerData parseTickerData(JsonNode jsonNode) {
         try {
             return new TickerData(
+                    "BINANCE",
                     jsonNode.get("s").asText(),
                     new BigDecimal(jsonNode.get("c").asText()),
                     new BigDecimal(jsonNode.get("h").asText()),
@@ -119,13 +126,25 @@ public class BinanceWebSocketClient {
         }).start();
     }
 
+    @Override
     public void disconnect() {
         if (webSocketClient != null && webSocketClient.isOpen()) {
             webSocketClient.close();
         }
     }
 
+    @Override
     public boolean isConnected() {
         return webSocketClient != null && webSocketClient.isOpen();
     }
-} 
+
+    @Override
+    public String getExchangeName() {
+        return "BINANCE";
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return binanceWebSocketClientEnabled;
+    }
+}
