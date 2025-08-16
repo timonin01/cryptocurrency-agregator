@@ -1,5 +1,6 @@
 package org.fetcher.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @ConditionalOnProperty(name = "spring.redis.host")
+@Slf4j
 public class RedisConfig {
 
     @Value("${spring.redis.host}")
@@ -29,6 +31,7 @@ public class RedisConfig {
         config.setHostName(redisHost);
         config.setPort(redisPort);
         config.setPassword(redisPassword);
+        log.info("Connecting to Redis at {}:{}", redisHost, redisPort);
         return new LettuceConnectionFactory(config);
     }
 

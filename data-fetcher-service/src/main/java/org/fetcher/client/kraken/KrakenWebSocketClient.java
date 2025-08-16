@@ -1,4 +1,4 @@
-package org.fetcher.client.bybit;
+package org.fetcher.client.kraken;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,7 +6,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
-import org.fetcher.service.symb.BybitSymbolServiceImpl;
+import org.fetcher.service.symb.KrakenSymbolServiceImpl;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,29 +20,29 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
-public class BybitWebSocketClient implements WebSocketExchangeClient {
+public class KrakenWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
-    private final BybitSymbolServiceImpl bybitSymbolService;
+    private final KrakenSymbolServiceImpl krakenSymbolService;
     private final String websocketUrl;
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
-    private final boolean bybitWebSocketClientEnabled;
+    private final boolean krakenWebSocketClientEnabled;
     private List<String> cryptocurrency;
 
-    public BybitWebSocketClient(@Value("${bybit.websocket-url:wss://stream.bybit.com/v5/public/spot}") String websocketUrl,
-                                BybitSymbolServiceImpl bybitSymbolService,
-                                @Value("${bybit.websocket-enabled:false}") boolean bybitWebSocketClientEnabled) {
+    public KrakenWebSocketClient(@Value("${kraken.websocket-url:wss://ws.kraken.com}") String websocketUrl,
+                                 KrakenSymbolServiceImpl krakenSymbolService,
+                                 @Value("${kraken.websocket-enabled:false}") boolean krakenWebSocketClientEnabled) {
         this.websocketUrl = websocketUrl;
-        this.bybitSymbolService = bybitSymbolService;
+        this.krakenSymbolService = krakenSymbolService;
         this.objectMapper = new ObjectMapper();
-        this.bybitWebSocketClientEnabled = bybitWebSocketClientEnabled;
+        this.krakenWebSocketClientEnabled = krakenWebSocketClientEnabled;
     }
 
     @PostConstruct
     public void init(){
-        this.cryptocurrency = bybitSymbolService.getAvailableSymbols();
+        this.cryptocurrency = krakenSymbolService.getAvailableSymbols();
     }
 
     @Override
@@ -50,11 +50,10 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
         this.tickerDataConsumer = tickerDataConsumer;
         try {
             String subscriptionMessage = createSubscriptionMessage();
-
             webSocketClient = new WebSocketClient(new URI(websocketUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
-                    log.info("WebSocket connection opened to Bybit");
+                    log.info("WebSocket connection opened to Kraken");
                     send(subscriptionMessage);
                 }
 
@@ -62,10 +61,10 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
                 public void onMessage(String message) {
                     try {
                         JsonNode jsonNode = objectMapper.readTree(message);
-                        if (jsonNode.has("data") && jsonNode.get("data").has("data")) {
-                            JsonNode data = jsonNode.get("data").get("data");
-                            if (data.has("symbol") && data.has("lastPricePx")) {
-                                TickerData tickerData = parseTickerData(data);
+                        if (jsonNode.isArray() && jsonNode.size() >= 2) {
+                            JsonNode data = jsonNode.get(1);
+                            if (data.has("c") && data.has("h") && data.has("l")) {
+                                TickerData tickerData = parseTickerData(data, jsonNode.get(0).asInt());
                                 if (tickerData != null && tickerDataConsumer != null) {
                                     tickerDataConsumer.accept(tickerData);
                                 }
@@ -97,13 +96,15 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
 
     private String createSubscriptionMessage() {
         try {
-            String[] topics = new String[cryptocurrency.size()];
+            String[] pairs = new String[cryptocurrency.size()];
             for (int i = 0; i < cryptocurrency.size(); i++) {
-                topics[i] = "tickers." + cryptocurrency.get(i);
+                String symbol = cryptocurrency.get(i).replace("BTC", "XBT");
+                pairs[i] = symbol;
             }
-            return objectMapper.writeValueAsString(new BybitSubscriptionRequest(
+            return objectMapper.writeValueAsString(new KrakenSubscriptionRequest(
                     "subscribe",
-                    topics
+                    pairs,
+                    "ticker"
             ));
         } catch (Exception e) {
             log.error("Error creating subscription message", e);
@@ -111,16 +112,18 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
         }
     }
 
-    private TickerData parseTickerData(JsonNode data) {
+    private TickerData parseTickerData(JsonNode data, int channelId) {
         try {
+            String symbol = getСryptocurrencyByChannelId(channelId);
+
             return new TickerData(
-                    "BYBIT",
-                    data.get("symbol").asText(),
-                    new BigDecimal(data.get("lastPricePx").asText()),
-                    new BigDecimal(data.get("highPrice24h").asText()),
-                    new BigDecimal(data.get("lowPrice24h").asText()),
-                    new BigDecimal(data.get("volume24h").asText()),
-                    new BigDecimal(data.get("price24hPcnt").asText()).multiply(new BigDecimal("100")),
+                    "KRAKEN",
+                    symbol,
+                    new BigDecimal(data.get("c").get(0).asText()),
+                    new BigDecimal(data.get("h").get(1).asText()),
+                    new BigDecimal(data.get("l").get(1).asText()),
+                    new BigDecimal(data.get("v").get(1).asText()),
+                    calculatePriceChangePercent(data),
                     Instant.now()
             );
         } catch (Exception e) {
@@ -129,11 +132,31 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
         }
     }
 
+    private String getСryptocurrencyByChannelId(int channelId) {
+        if (cryptocurrency.size() > 0) {
+            return cryptocurrency.get(0).replace("BTC", "XBT");
+        }
+        return "XBT/USD";
+    }
+
+    private BigDecimal calculatePriceChangePercent(JsonNode data) {
+        try {
+            BigDecimal currentPrice = new BigDecimal(data.get("c").get(0).asText());
+            BigDecimal openPrice = new BigDecimal(data.get("o").asText());
+
+            return currentPrice.subtract(openPrice)
+                    .divide(openPrice, 4, BigDecimal.ROUND_HALF_UP)
+                    .multiply(new BigDecimal("100"));
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
     private void scheduleReconnect() {
         new Thread(() -> {
             try {
                 Thread.sleep(5000);
-                log.info("Attempting to reconnect WebSocket to Bybit...");
+                log.info("Attempting to reconnect WebSocket to Kraken...");
                 if (tickerDataConsumer != null) {
                     connect(tickerDataConsumer);
                 }
@@ -158,11 +181,12 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
 
     @Override
     public String getExchangeName() {
-        return "BYBIT";
+        return "KRAKEN";
     }
 
     @Override
     public boolean isEnabled() {
-        return bybitWebSocketClientEnabled;
+        return krakenWebSocketClientEnabled;
     }
+
 }

@@ -1,10 +1,12 @@
 package org.fetcher.client.binance;
 
+import lombok.NonNull;
+
 public record BinanceTickerResponse(
-        String cryptocurrency,
-        String lastPrice,
-        String highPrice,
-        String lowPrice,
-        String volume,
-        String priceChangePercent
+        String symbol,
+        @NonNull String lastPrice,
+        @NonNull String highPrice,
+        @NonNull String lowPrice,
+        @NonNull String volume,
+        @NonNull String priceChangePercent
 ) {}

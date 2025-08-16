@@ -2,9 +2,11 @@ package org.fetcher.client.binance;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
+import org.fetcher.service.symb.BinanceSymbolServiceImpl;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
 import java.util.function.Consumer;
 
 @Service
@@ -20,20 +23,26 @@ import java.util.function.Consumer;
 public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
-    private final String[] symbols;
     private final String websocketUrl;
+    private final BinanceSymbolServiceImpl binanceSymbolService;
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
     private final boolean binanceWebSocketClientEnabled;
+    private List<String> cryptocurrency;
 
     public BinanceWebSocketClient(@Value("${binance.websocket-url}") String websocketUrl,
-                                  @Value("${binance.symbols}") String symbols,
+                                  BinanceSymbolServiceImpl binanceSymbolService,
                                   @Value("${binance.websocket-enabled}") boolean binanceWebSocketClientEnabled) {
         this.websocketUrl = websocketUrl;
-        this.symbols = symbols.split(",");
+        this.binanceSymbolService = binanceSymbolService;
         this.objectMapper = new ObjectMapper();
         this.binanceWebSocketClientEnabled = binanceWebSocketClientEnabled;
+    }
+
+    @PostConstruct
+    public void init(){
+        this.cryptocurrency = binanceSymbolService.getAvailableSymbols();
     }
 
     @Override
@@ -85,9 +94,9 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private String createSubscriptionMessage() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < symbols.length; i++) {
+        for (int i = 0; i < cryptocurrency.size(); i++) {
             if (i > 0) sb.append("/");
-            sb.append(symbols[i].toLowerCase()).append("@ticker");
+            sb.append(cryptocurrency.get(i).toLowerCase()).append("@ticker");
         }
         return sb.toString();
     }

@@ -1,109 +1,156 @@
 package org.fetcher.service;
 
-import org.fetcher.client.binance.BinanceRestClient;
-import org.fetcher.client.binance.BinanceWebSocketClient;
+import lombok.extern.slf4j.Slf4j;
+import org.fetcher.client.ExchangeClient;
+import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.util.Arrays;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
+@Slf4j
 public class DataFetcherService {
-    private static final Logger logger = LoggerFactory.getLogger(DataFetcherService.class);
-    
-    private final BinanceRestClient restClient;
-    private final BinanceWebSocketClient webSocketClient;
-    private final String[] symbols;
-    private final AtomicBoolean webSocketEnabled;
-    
+
+    private final List<ExchangeClient> exchangeClients;
+    private final List<WebSocketExchangeClient> webSocketExchangeClients;
+
     private final ConcurrentHashMap<String, TickerData> tickerCache = new ConcurrentHashMap<>();
 
-    public DataFetcherService(BinanceRestClient restClient,
-                             BinanceWebSocketClient webSocketClient,
-                             @Value("${binance.symbols}") String symbols,
-                             @Value("${binance.websocket-enabled:false}") boolean webSocketEnabled) {
-        this.restClient = restClient;
-        this.webSocketClient = webSocketClient;
-        this.symbols = symbols.split(",");
-        this.webSocketEnabled = new AtomicBoolean(webSocketEnabled);
+    public DataFetcherService(List<ExchangeClient> exchangeClients,
+                              List<WebSocketExchangeClient> webSocketExchangeClients) {
+        this.exchangeClients = exchangeClients;
+        this.webSocketExchangeClients = webSocketExchangeClients;
     }
 
     @PostConstruct
     public void init() {
-        if (webSocketEnabled.get()) {
-            startWebSocketStreaming();
+        log.info("=== DataFetcherService Initialization ===");
+        log.info("Found {} exchange clients", exchangeClients.size());
+        log.info("Found {} WebSocket clients", webSocketExchangeClients.size());
+        
+        for (ExchangeClient client : exchangeClients) {
+            log.info("Exchange: {} - Enabled: {}", client.getExchangeName(), client.isEnabled());
         }
         
-        logger.info("DataFetcherService initialized with symbols: {}", Arrays.toString(symbols));
+        for (WebSocketExchangeClient client : webSocketExchangeClients) {
+            log.info("WebSocket: {} - Enabled: {}", client.getExchangeName(), client.isEnabled());
+        }
+        
+        startWebSocketStreaming();
     }
 
     @PreDestroy
     public void cleanup() {
-        if (webSocketClient != null) {
-            webSocketClient.disconnect();
+        if (webSocketExchangeClients != null) {
+            webSocketExchangeClients.forEach(WebSocketExchangeClient::disconnect);
         }
-        logger.info("DataFetcherService cleanup completed");
+        log.info("DataFetcherService cleanup completed");
     }
 
     private void startWebSocketStreaming() {
-        webSocketClient.connect(this::processTickerData);
-        logger.info("WebSocket streaming started");
+        webSocketExchangeClients.stream()
+                .filter(WebSocketExchangeClient::isEnabled)
+                .forEach(client -> {
+                    client.connect(this::processTickerData);
+                    log.info("WebSocket streaming started for {}", client.getClass().getSimpleName());
+                });
     }
 
     private void processTickerData(TickerData tickerData) {
         if (tickerData != null) {
-            tickerCache.put(tickerData.symbol(), tickerData);
-            
-            logger.debug("Received ticker data for {}: price={}, change={}%", 
-                tickerData.symbol(), tickerData.lastPrice(), tickerData.priceChangePercent());
+            String cacheKey = tickerData.exchangeName() + ":" + tickerData.cryptocurrency();
+            tickerCache.put(cacheKey, tickerData);
+            log.debug("Received {} data for {}: price={}, change={}%",
+                    tickerData.exchangeName(),
+                    tickerData.cryptocurrency(),
+                    tickerData.lastPrice(),
+                    tickerData.priceChangePercent());
         }
     }
 
-    @Scheduled(fixedDelayString = "${binance.rest-poll-interval-sec:10}s")
+    @Scheduled(fixedDelayString = "${rest-poll-interval-sec:10}s")
     public void pollRestData() {
-        if (!webSocketEnabled.get() || !webSocketClient.isConnected()) {
-            logger.debug("Polling REST data for symbols: {}", Arrays.toString(symbols));
-            
-            Flux.fromArray(symbols)
-                .flatMap(restClient::getTicker)
-                .filter(tickerData -> tickerData != null)
-                .subscribe(this::processTickerData);
+        if (!isAnyWebSocketConnected()) {
+            Flux.fromIterable(exchangeClients)
+                    .filter(ExchangeClient::isEnabled)
+                    .flatMap(client -> client.getAllTickers()
+                            .onErrorResume(e -> {
+                                log.error("Error fetching from {}: {}", client.getExchangeName(), e.getMessage());
+                                return Flux.empty(); // Изолируем ошибки каждой биржи
+                            })
+                    )
+                    .filter(Objects::nonNull)
+                    .subscribe(this::processTickerData);
         }
     }
 
-    public TickerData getTickerData(String symbol) {
-        return tickerCache.get(symbol);
+    public Flux<TickerData> getTickerDataForCryptocurrencyAndExchange(String cryptocurrency, String exchange) {
+        String normalizedSymbol = cryptocurrency.replace("/", "").toUpperCase();
+        String normalizedExchange = exchange.toUpperCase();
+
+        return getAllTickerData()
+                .filter(ticker ->
+                        (ticker.cryptocurrency().replace("/", "").contains(normalizedSymbol) &&
+                                ticker.exchangeName().equalsIgnoreCase(normalizedExchange)
+                        ))
+                .take(30);
+    }
+
+    public Flux<TickerData> getTickerDataForCryptocurrency(String cryptocurrency) {
+        return Flux.fromIterable(tickerCache.values())
+                .filter(tickerData -> tickerData.cryptocurrency().equalsIgnoreCase(cryptocurrency) &&
+                        tickerData.volume().compareTo(new BigDecimal(0)) > 0)
+                .take(30);
+    }
+
+    public Flux<TickerData> getTickerDataFromExchangeName(String exchangeName) {
+        return Flux.fromIterable(tickerCache.values())
+                .filter(tickerData -> tickerData.exchangeName().equalsIgnoreCase(exchangeName) &&
+                        tickerData.volume().compareTo(new BigDecimal(0)) > 0)
+                .take(30);
     }
 
     public Flux<TickerData> getAllTickerData() {
-        return Flux.fromArray(symbols)
-                .mapNotNull(tickerCache::get);
+        return Flux.fromIterable(tickerCache.values())
+                .filter(tickerData -> tickerData.volume().compareTo(new BigDecimal(0)) > 0)
+                .take(30);
     }
 
-    public boolean isWebSocketConnected() {
-        return webSocketClient != null && webSocketClient.isConnected();
+    public List<String> getAvailableExchanges() {
+        return tickerCache.values().stream()
+                .map(TickerData::exchangeName)
+                .distinct()
+                .toList();
+    }
+
+    public boolean isAnyWebSocketConnected() {
+        return webSocketExchangeClients != null &&
+                webSocketExchangeClients.stream()
+                        .anyMatch(WebSocketExchangeClient::isConnected);
+    }
+
+    public boolean isWebSocketConnected(String exchangeName) {
+        return webSocketExchangeClients.stream()
+                .filter(client -> client.getExchangeName().equalsIgnoreCase(exchangeName))
+                .anyMatch(WebSocketExchangeClient::isConnected);
     }
 
     public void enableWebSocket() {
-        if (webSocketEnabled.compareAndSet(false, true)) {
-            startWebSocketStreaming();
-            logger.info("WebSocket streaming enabled");
-        }
+        startWebSocketStreaming();
+        log.info("WebSocket streaming enabled for all clients");
     }
 
     public void disableWebSocket() {
-        if (webSocketEnabled.compareAndSet(true, false)) {
-            webSocketClient.disconnect();
-            logger.info("WebSocket streaming disabled");
-        }
+        webSocketExchangeClients.forEach(WebSocketExchangeClient::disconnect);
+        log.info("WebSocket streaming disabled for all clients");
     }
-} 
+}

@@ -1,74 +1,398 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Tracker - Binance</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .crypto-card { background: rgba(255,255,255,0.95); border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
-        .price-up { color: #28a745; }
-        .price-down { color: #dc3545; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Tracker Pro — Multi-Exchange</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --grad-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --grad-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    body {
+      background: var(--grad-1);
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+    }
+
+    .hero { color: #fff; padding: 24px; }
+
+    .crypto-card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      border-left: 4px solid transparent;
+      transition: transform 0.2s;
+    }
+
+    .crypto-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .crypto-card.binance { border-left-color: #f0b90b; }
+    .crypto-card.kraken { border-left-color: #5841d8; }
+    .crypto-card.bybit { border-left-color: #f7931a; }
+
+    .exchange-badge {
+      font-size: .75rem;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-weight: 700;
+    }
+    .exchange-badge.binance { background: #f0b90b; color: #000; }
+    .exchange-badge.kraken { background: #5841d8; color: #fff; }
+    .exchange-badge.bybit { background: #f7931a; color: #fff; }
+
+    .price { font-size: 1.5rem; font-weight: 800; }
+    .change-up { color: #198754; font-weight: 700; }
+    .change-down { color: #dc3545; font-weight: 700; }
+    .change-flat { color: #6c757d; font-weight: 700; }
+
+    .ctrl { padding: 16px; }
+
+    .spinner-wrap {
+      display: none;
+      color: #fff;
+      text-align: center;
+      padding: 16px;
+    }
+
+    /* Стили для автодополнения */
+    .search-container {
+      position: relative;
+    }
+
+    #symbolInput {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 8px 12px;
+      width: 100%;
+    }
+
+    .autocomplete-suggestions {
+      position: absolute;
+      background: white;
+      z-index: 1000;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: none;
+    }
+
+    .autocomplete-suggestion {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .autocomplete-suggestion:hover {
+      background-color: #f8f9fa;
+    }
+
+    .autocomplete-suggestion:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 768px) {
+      .crypto-card {
+        margin-bottom: 15px;
+      }
+
+      .hero h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="crypto-card p-4 mb-4">
-                    <h2 class="text-center">Курсы криптовалют Binance</h2>
-                    <div class="text-center mb-3">
-                        <small class="text-muted">Обновлено: <span id="lastUpdate">-</span></small>
-                        <button class="btn btn-primary ms-3" onclick="loadData()">Обновить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row" id="cryptoContainer"></div>
+<nav class="navbar navbar-expand-lg glass mt-2 mx-2">
+  <div class="container-fluid">
+    <a class="navbar-brand text-white fw-bold" href="#"><i class="fa-solid fa-chart-line me-2"></i>Crypto Tracker Pro</a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <span class="text-white-50 small"><i class="fa-regular fa-clock me-1"></i><span id="now">--:--:--</span></span>
+      <span class="text-white small"><i class="fa-solid fa-signal me-1"></i><span id="conn">Подключение...</span></span>
     </div>
+  </div>
+</nav>
 
-    <script>
-        async function loadData() {
-            try {
-                const response = await fetch('/api/v1/data/tickers');
-                const data = await response.json();
-                renderCards(data);
-                document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
-            } catch (error) {
-                console.error('Ошибка:', error);
-            }
-        }
+<main class="container my-3">
+  <section class="hero glass">
+    <h1 class="h3 fw-bold mb-1"><i class="fa-solid fa-globe me-2"></i>Мульти‑биржевой трекер</h1>
+    <p class="mb-0 text-white-50">Следите за курсами с Binance, Kraken и Bybit. Фильтры, сравнение и автообновление каждые 10 секунд.</p>
+  </section>
 
-        function renderCards(data) {
-            const container = document.getElementById('cryptoContainer');
-            container.innerHTML = '';
-            
-            data.forEach(crypto => {
-                const changePercent = parseFloat(crypto.priceChangePercent);
-                const changeClass = changePercent >= 0 ? 'price-up' : 'price-down';
-                
-                container.innerHTML += `
-                    <div class="col-lg-4 col-md-6 col-12 mb-4">
-                        <div class="crypto-card p-4">
-                            <h5>${crypto.symbol}</h5>
-                            <div class="h4">$${parseFloat(crypto.lastPrice).toFixed(2)}</div>
-                            <div class="${changeClass}">${changePercent.toFixed(2)}%</div>
-                            <div class="mt-2">
-                                <small>Макс: $${parseFloat(crypto.highPrice).toFixed(2)}</small><br>
-                                <small>Мин: $${parseFloat(crypto.lowPrice).toFixed(2)}</small>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
+  <section class="glass ctrl mt-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-3">
+        <button class="btn btn-primary w-100" id="refreshBtn"><i class="fa-solid fa-rotate me-2"></i>Обновить</button>
+      </div>
+      <div class="col-6 col-md-3">
+        <select id="exchangeFilter" class="form-select">
+          <option value="">Все биржи</option>
+          <option value="BINANCE">Binance</option>
+          <option value="KRAKEN">Kraken</option>
+          <option value="BYBIT">Bybit</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3 search-container">
+        <input type="text" id="symbolInput" class="form-control" placeholder="Начните вводить (напр. BTC)">
+        <div id="symbolSuggestions" class="autocomplete-suggestions"></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <button class="btn btn-warning w-100" id="compareBtn"><i class="fa-solid fa-scale-balanced me-2"></i>Сравнить цены</button>
+      </div>
+    </div>
+  </section>
 
-        // Загрузить данные при загрузке страницы
-        document.addEventListener('DOMContentLoaded', loadData);
-        
-        // Обновлять каждые 10 секунд
-        setInterval(loadData, 10000);
-    </script>
+  <section class="glass mt-3 p-3 d-flex justify-content-between text-white-50">
+    <div><i class="fa-solid fa-exchange-alt me-2"></i>Биржи: <span id="statEx">-</span></div>
+    <div><i class="fa-solid fa-coins me-2"></i>Криптовалюты: <span id="statSy">-</span></div>
+    <div><i class="fa-regular fa-clock me-2"></i>Обновлено: <span id="statUpd">-</span></div>
+  </section>
+
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner-border text-light" role="status"></div>
+    <div class="mt-2">Загружаем данные...</div>
+  </div>
+
+  <section class="mt-3">
+    <div class="row" id="cards"></div>
+  </section>
+</main>
+
+<!-- Modal: Comparison -->
+<div class="modal fade" id="cmpModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-balance-scale me-2"></i>Сравнение цен</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="cmpBody">
+        <div class="text-center text-muted">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let dataCache = [];
+  let cmpModal;
+  let inputTimer;
+  const popularSymbols = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOT', 'AVAX', 'BNB', 'DOGE', 'LTC'];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    cmpModal = new bootstrap.Modal(document.getElementById('cmpModal'));
+
+    // Обработчики событий
+    document.getElementById('refreshBtn').addEventListener('click', loadData);
+    document.getElementById('exchangeFilter').addEventListener('change', loadData);
+    document.getElementById('symbolInput').addEventListener('input', handleSymbolInput);
+    document.getElementById('compareBtn').addEventListener('click', showComparison);
+
+    // Таймер для времени и автообновления
+    setInterval(() => document.getElementById('now').textContent = new Date().toLocaleTimeString('ru-RU'), 1000);
+    loadData();
+    setInterval(loadData, 10000);
+  });
+
+  function handleSymbolInput() {
+    const input = this;
+    const suggestionsContainer = document.getElementById('symbolSuggestions');
+
+    // Показываем подсказки
+    if (input.value.length > 0) {
+      const inputValue = input.value.toUpperCase();
+      const filtered = popularSymbols.filter(s => s.includes(inputValue));
+
+      if (filtered.length > 0) {
+        suggestionsContainer.innerHTML = filtered.map(s =>
+          `<div class="autocomplete-suggestion">${s}</div>`
+        ).join('');
+        suggestionsContainer.style.display = 'block';
+
+        // Обработка клика по подсказке
+        document.querySelectorAll('.autocomplete-suggestion').forEach(item => {
+          item.addEventListener('click', () => {
+            input.value = item.textContent;
+            suggestionsContainer.style.display = 'none';
+            loadData();
+          });
+        });
+      } else {
+        suggestionsContainer.style.display = 'none';
+      }
+    } else {
+      suggestionsContainer.style.display = 'none';
+    }
+
+    clearTimeout(inputTimer);
+    inputTimer = setTimeout(() => {
+      if (input.value.length > 0) {
+        loadData();
+      }
+    }, 500);
+  }
+
+  async function loadData() {
+    toggleSpinner(true);
+    try {
+      const exchange = document.getElementById('exchangeFilter').value;
+      const symbol = document.getElementById('symbolInput').value;
+
+      let url = '/api/v1/tickers';
+      const params = new URLSearchParams();
+      if (exchange) params.append('exchangeName', exchange);
+      if (symbol) params.append('cryptocurrency', symbol.toUpperCase().replace("/", ""));
+
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const res = await fetch(url);
+      const json = await res.json();
+      dataCache = Array.isArray(json) ? json : [];
+      document.getElementById('conn').textContent = 'Подключено';
+      document.getElementById('statUpd').textContent = new Date().toLocaleString('ru-RU');
+      updateStats(dataCache);
+      renderCards(dataCache);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('conn').textContent = 'Ошибка соединения';
+      renderCards([]);
+    } finally {
+      toggleSpinner(false);
+    }
+  }
+
+  function updateStats(list) {
+    const ex = new Set(list.map(i => i.exchangeName));
+    const sy = new Set(list.map(i => i.cryptocurrency));
+    document.getElementById('statEx').textContent = ex.size;
+    document.getElementById('statSy').textContent = sy.size;
+  }
+
+  function formatCryptoPrice(price) {
+    const num = Number(price);
+    if (isNaN(num)) return '0.00';
+
+    // Для всех цен показываем минимум 8 знаков после запятой
+    if (num < 1) {
+      // Убираем лишние нули в конце, но оставляем минимум 2 знака
+      const formatted = num.toFixed(12).replace(/\.?0+$/, '');
+      const decimalPlaces = formatted.includes('.') ? formatted.split('.')[1].length : 0;
+      return decimalPlaces < 2 ? num.toFixed(8) : formatted;
+    }
+    // Для цен >= 1 стандартное форматирование с 2 знаками
+    else {
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 8 // Добавляем максимум 8 знаков для крупных цен
+      });
+    }
+  }
+
+  function renderCards(list) {
+    const wrap = document.getElementById('cards');
+    wrap.innerHTML = '';
+    if (!list.length) {
+      wrap.innerHTML = '<div class="col-12"><div class="crypto-card text-center"><div class="text-muted">Нет данных. Измените фильтры или обновите.</div></div></div>';
+      return;
+    }
+    list.forEach(item => {
+      const pct = parseFloat(item.priceChangePercent ?? 0);
+      const cls = pct > 0 ? 'change-up' : (pct < 0 ? 'change-down' : 'change-flat');
+      const exCls = (item.exchangeName || '').toLowerCase();
+      const card = document.createElement('div');
+      card.className = 'col-12 col-md-6 col-lg-4 mb-3';
+      card.innerHTML = `
+        <div class="crypto-card ${exCls}">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="mb-1"><i class="fa-solid fa-coins me-2 text-primary"></i>${item.cryptocurrency}</h6>
+              <span class="exchange-badge ${exCls}">${item.exchangeName}</span>
+            </div>
+            <small class="text-muted">${new Date(item.timestamp || Date.now()).toLocaleTimeString('ru-RU')}</small>
+          </div>
+          <div class="price">$${formatCryptoPrice(item.lastPrice)}</div>
+          <div class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</div>
+          <div class="row mt-3 text-center">
+            <div class="col-6"><small class="text-muted">Макс 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.highPrice)}</div></div>
+            <div class="col-6"><small class="text-muted">Мин 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.lowPrice)}</div></div>
+          </div>
+          <div class="mt-3 text-center text-muted">
+            <small><i class="fa-solid fa-chart-column me-1"></i>Объем: ${Number(item.volume).toLocaleString('en-US')}</small>
+          </div>
+        </div>
+      `;
+      wrap.appendChild(card);
+    });
+  }
+
+  function toggleSpinner(flag) {
+    document.getElementById('spinner').style.display = flag ? 'block' : 'none';
+  }
+
+  async function showComparison() {
+      showCmpHtml(`
+        <div class="mb-2"><strong>Символ:</strong> ${symbol}</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="p-3 border rounded h-100">
+              <div class="text-success fw-semibold mb-1">Лучшая покупка</div>
+              <div><strong>${lowest.exchange}</strong></div>
+              <div>$${formatCryptoPrice(lowest.price)}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded h-100">
+              <div class="text-danger fw-semibold mb-1">Лучшая продажа</div>
+              <div><strong>${highest.exchange}</strong></div>
+              <div>$${formatCryptoPrice(highest.price)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 p-3 border rounded">
+          <div><strong>Разница:</strong> $${formatCryptoPrice(diff.absolute)} (${diff.percent}%)</div>
+        </div>
+        <div class="mt-3">
+          <div class="fw-semibold mb-2">Все цены по биржам</div>
+          <div class="border rounded">
+            ${allPrices.map(p => `
+              <div class="d-flex justify-content-between px-2 py-1 border-bottom">
+                <strong>${p.exchange}</strong>
+                <span>$${formatCryptoPrice(p.price)}</span>
+                <span class="${Number(p.change24h) >= 0 ? 'text-success' : 'text-danger'}">
+                  ${Number(p.change24h) >= 0 ? '+' : ''}${Number(p.change24h).toFixed(2)}%
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `);
+  }
+
+  function guessPrimarySymbol() {
+    const first = dataCache[0];
+    return first ? first.cryptocurrency : '';
+  }
+
+  function showCmpHtml(html) {
+    document.getElementById('cmpBody').innerHTML = html;
+  }
+</script>
 </body>
-</html> 
+</html>

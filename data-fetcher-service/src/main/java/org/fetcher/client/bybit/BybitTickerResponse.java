@@ -1,11 +1,12 @@
 package org.fetcher.client.bybit;
 
+import lombok.NonNull;
+
+import java.util.List;
+
 public record BybitTickerResponse(
-        String cryptocurrency,
-        String lastPrice,
-        String highPrice,
-        String lowPrice,
-        String volume,
-        String priceChangePercent
+        int retCode,
+        String retMsg,
+        BybitTickerResult result
 ) {
 }
