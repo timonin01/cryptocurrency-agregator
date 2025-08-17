@@ -79,18 +79,17 @@ public class DataFetcherService {
 
     @Scheduled(fixedDelayString = "${rest-poll-interval-sec:10}s")
     public void pollRestData() {
-        if (!isAnyWebSocketConnected()) {
-            Flux.fromIterable(exchangeClients)
-                    .filter(ExchangeClient::isEnabled)
-                    .flatMap(client -> client.getAllTickers()
-                            .onErrorResume(e -> {
-                                log.error("Error fetching from {}: {}", client.getExchangeName(), e.getMessage());
-                                return Flux.empty(); // Изолируем ошибки каждой биржи
-                            })
-                    )
-                    .filter(Objects::nonNull)
-                    .subscribe(this::processTickerData);
-        }
+        Flux.fromIterable(exchangeClients)
+                .filter(ExchangeClient::isEnabled)
+                .filter(client -> !isWebSocketConnected(client.getExchangeName()))
+                .flatMap(client -> client.getAllTickers()
+                        .onErrorResume(e -> {
+                            log.error("Error fetching from {}: {}", client.getExchangeName(), e.getMessage());
+                            return Flux.empty();
+                        })
+                )
+                .filter(Objects::nonNull)
+                .subscribe(this::processTickerData);
     }
 
     public Flux<TickerData> getTickerDataForCryptocurrencyAndExchange(String cryptocurrency, String exchange) {
@@ -120,6 +119,11 @@ public class DataFetcherService {
     }
 
     public Flux<TickerData> getAllTickerData() {
+        return Flux.fromIterable(tickerCache.values())
+                .filter(tickerData -> tickerData.volume().compareTo(new BigDecimal(0)) > 0);
+    }
+
+    public Flux<TickerData> getAllTickerDataInGeneralPage() {
         return Flux.fromIterable(tickerCache.values())
                 .filter(tickerData -> tickerData.volume().compareTo(new BigDecimal(0)) > 0)
                 .take(30);

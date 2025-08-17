@@ -2,6 +2,8 @@ package org.fetcher.client.binance;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
@@ -48,14 +50,13 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
     @Override
     public void connect(Consumer<TickerData> tickerDataConsumer) {
         this.tickerDataConsumer = tickerDataConsumer;
-        try {
-            String message = createSubscriptionMessage();
-            String fullUrl = websocketUrl + "/" + message;
 
-            webSocketClient = new WebSocketClient(new URI(fullUrl)) {
+        try {
+            webSocketClient = new WebSocketClient(new URI(websocketUrl)) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
                     log.info("WebSocket connection opened to Binance");
+                    subscribeToTickers();
                 }
 
                 @Override
@@ -76,9 +77,7 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
                     log.info("WebSocket connection closed: code={}, reason={}, remote={}", code, reason, remote);
-                    if (remote) {
-                        scheduleReconnect();
-                    }
+                    if (remote) scheduleReconnect();
                 }
 
                 @Override
@@ -92,13 +91,25 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
         }
     }
 
-    private String createSubscriptionMessage() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cryptocurrency.size(); i++) {
-            if (i > 0) sb.append("/");
-            sb.append(cryptocurrency.get(i).toLowerCase()).append("@ticker");
+    private void subscribeToTickers() {
+        try {
+            ArrayNode params = objectMapper.createArrayNode();
+            for (String symbol : cryptocurrency) {
+                params.add(symbol.toLowerCase() + "@ticker");
+            }
+
+            ObjectNode request = objectMapper.createObjectNode();
+            request.put("method", "SUBSCRIBE");
+            request.set("params", params);
+            request.put("id", 1);
+
+            if (webSocketClient != null && webSocketClient.isOpen()) {
+                webSocketClient.send(request.toString());
+                log.info("Subscribed to {} ticker streams", params.size());
+            }
+        } catch (Exception e) {
+            log.error("Failed to subscribe to tickers", e);
         }
-        return sb.toString();
     }
 
     private TickerData parseTickerData(JsonNode jsonNode) {

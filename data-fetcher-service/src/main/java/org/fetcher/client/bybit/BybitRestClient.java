@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -49,7 +50,7 @@ public class BybitRestClient implements ExchangeClient {
                 .retrieve()
                 .bodyToMono(BybitTickerResponse.class)
                 .map(response -> {
-                    if (response.retMsg().equals("OK")) {
+                    if (response.retMsg().equals("OK") && response.result().list() != null) {
                         BybitTickerResult result = response.result();
                         BybitTickerData bybitTickerData = result.list().get(0);
                         String symbol_val = bybitTickerData.symbol();
@@ -74,6 +75,7 @@ public class BybitRestClient implements ExchangeClient {
                     }
                     return null;
                 })
+                .filter(Objects::nonNull)
                 .onErrorResume(ex -> {
                     log.error("Failed to fetch ticker for symbol {} in BybitRestClient: {}", symbol, ex.getMessage());
                     return Mono.empty();

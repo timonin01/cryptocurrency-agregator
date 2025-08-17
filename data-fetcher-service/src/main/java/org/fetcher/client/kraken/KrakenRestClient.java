@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -82,6 +83,7 @@ public class KrakenRestClient implements ExchangeClient {
                         return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .onErrorResume(ex -> {
                     log.error("Failed to fetch ticker for symbol {}: {}", symbol, ex.getMessage());
                     return Mono.empty();

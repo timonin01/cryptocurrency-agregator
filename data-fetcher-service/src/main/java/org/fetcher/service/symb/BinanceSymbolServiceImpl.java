@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -49,7 +50,8 @@ public class BinanceSymbolServiceImpl implements SymbolService {
                 })
                 .onErrorResume(e -> {
                     log.error("Failed to fetch symbols from Binance", e);
-                    return Mono.error(new RuntimeException("Failed to fetch symbols from Binance", e));
+                    List<String> cached = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
+                    return cached != null ? Mono.just(cached) : Mono.just(List.of());
                 })
                 .block();
     }
@@ -70,7 +72,6 @@ public class BinanceSymbolServiceImpl implements SymbolService {
 
                 if (new BigDecimal(lastPriceStr).compareTo(BigDecimal.ZERO) <= 0) continue;
                 if (new BigDecimal(volumeStr).compareTo(new BigDecimal("1000")) < 0) continue;
-
                 symbolList.add(symbol);
             }
 

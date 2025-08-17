@@ -26,7 +26,7 @@ public class DataController {
         } else if (exchangeName != null) {
             return dataFetcherService.getTickerDataFromExchangeName(exchangeName);
         }
-        return dataFetcherService.getAllTickerData();
+        return dataFetcherService.getAllTickerDataInGeneralPage();
     }
 
     @GetMapping("/exchanges")
