@@ -34,8 +34,41 @@ public class BinanceSymbolServiceImpl implements SymbolService {
 
     @Override
     public List<String> fetchSymbols() {
+        List<String> cached = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
+        if (cached != null && !cached.isEmpty()) {
+            log.info("Using {} cached symbols from Redis", cached.size());
+            return cached;
+        }
+
+        return attemptFetchFromEndpoint(binanceGetTicketsUrl)
+                .onErrorResume(e -> {
+                    log.warn("Primary endpoint failed: {}, trying alternative endpoint", e.getMessage());
+                    String alternativeUrl = "https://api.binance.com/api/v3/ticker/price";
+                    return attemptFetchFromAlternativeEndpoint(alternativeUrl);
+                })
+                .onErrorResume(e -> {
+                    log.warn("Alternative endpoint failed: {}, trying third endpoint", e.getMessage());
+                    String thirdUrl = "https://api.binance.com/api/v3/ping";
+                    return attemptFetchFromThirdEndpoint(thirdUrl);
+                })
+                .onErrorResume(e -> {
+                    log.error("All endpoints failed, using default symbols", e);
+                    return Mono.just(getDefaultSymbols());
+                })
+                .block();
+    }
+
+    private Mono<List<String>> attemptFetchFromEndpoint(String url) {
         return webClient.get()
-                .uri(binanceGetTicketsUrl)
+                .uri(url)
+                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "application/json")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .header("Sec-Fetch-Dest", "empty")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("Sec-Fetch-Site", "same-site")
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(this::parseSymbols)
@@ -46,14 +79,72 @@ public class BinanceSymbolServiceImpl implements SymbolService {
                             5,
                             TimeUnit.HOURS
                     );
-                    log.info("Fetched {} symbols from Binance", symbols.size());
+                    log.info("Fetched {} symbols from Binance via {}", symbols.size(), url);
                 })
-                .onErrorResume(e -> {
-                    log.error("Failed to fetch symbols from Binance", e);
-                    List<String> cached = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
-                    return cached != null ? Mono.just(cached) : Mono.just(List.of());
+                .doOnError(e -> log.error("Failed to fetch from {}: {}", url, e.getMessage()));
+    }
+
+    private Mono<List<String>> attemptFetchFromAlternativeEndpoint(String url) {
+        return webClient.get()
+                .uri(url)
+                .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "application/json")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .header("Sec-Fetch-Dest", "empty")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("Sec-Fetch-Site", "same-site")
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(this::parsePriceSymbols)
+                .doOnSuccess(symbols -> {
+                    redisTemplate.opsForValue().set(
+                            binanceRedisKey,
+                            symbols,
+                            5,
+                            TimeUnit.HOURS
+                    );
+                    log.info("Fetched {} symbols from Binance ticker/price", symbols.size());
                 })
-                .block();
+                .doOnError(e -> log.error("Failed to fetch from alternative endpoint {}: {}", url, e.getMessage()));
+    }
+
+    private Mono<List<String>> attemptFetchFromThirdEndpoint(String url) {
+        return webClient.get()
+                .uri(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "application/json")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(response -> {
+                    log.info("Third endpoint responded: {}", response);
+                    return getDefaultSymbols();
+                })
+                .doOnSuccess(symbols -> {
+                    redisTemplate.opsForValue().set(
+                            binanceRedisKey,
+                            symbols,
+                            5,
+                            TimeUnit.HOURS
+                    );
+                    log.info("Using {} default symbols after third endpoint check", symbols.size());
+                })
+                .doOnError(e -> log.error("Failed to fetch from third endpoint {}: {}", url, e.getMessage()));
+    }
+
+    private List<String> getDefaultSymbols() {
+        List<String> defaultSymbols = List.of(
+                "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "SOLUSDT",
+                "DOGEUSDT", "DOTUSDT", "LTCUSDT", "LINKUSDT", "BCHUSDT", "XLMUSDT",
+                "UNIUSDT", "ETCUSDT", "FILUSDT", "TRXUSDT", "AVAXUSDT", "ATOMUSDT",
+                "SHIBUSDT", "PEPEUSDT", "ARBUSDT", "OPUSDT", "MATICUSDT", "NEARUSDT"
+        );
+        log.info("Using {} default symbols as fallback", defaultSymbols.size());
+        return defaultSymbols;
     }
 
     private List<String> parseSymbols(String response) {
@@ -72,7 +163,15 @@ public class BinanceSymbolServiceImpl implements SymbolService {
 
                 if (new BigDecimal(lastPriceStr).compareTo(BigDecimal.ZERO) <= 0) continue;
                 if (new BigDecimal(volumeStr).compareTo(new BigDecimal("1000")) < 0) continue;
-                symbolList.add(symbol);
+
+                if (symbol.endsWith("USDT") || 
+                    symbol.endsWith("BTC") || 
+                    symbol.endsWith("ETH") || 
+                    symbol.endsWith("BNB") ||
+                    symbol.endsWith("USDC") ||
+                    symbol.endsWith("BUSD")) {
+                    symbolList.add(symbol);
+                }
             }
 
             log.info("Fetched {} active symbols from /ticker/24hr", symbolList.size());
@@ -83,9 +182,43 @@ public class BinanceSymbolServiceImpl implements SymbolService {
         }
     }
 
+    private List<String> parsePriceSymbols(String response) {
+        try {
+            JsonNode prices = objectMapper.readTree(response);
+            List<String> symbolList = new ArrayList<>();
+
+            if (!prices.isArray()) {
+                throw new RuntimeException("Expected array");
+            }
+
+            for (JsonNode price : prices) {
+                String symbol = price.path("symbol").asText();
+                String priceValue = price.path("price").asText();
+
+                if (!priceValue.equals("0.00000000") && (
+                    symbol.endsWith("USDT") || 
+                    symbol.endsWith("BTC") || 
+                    symbol.endsWith("ETH") || 
+                    symbol.endsWith("BNB") ||
+                    symbol.endsWith("USDC") ||
+                    symbol.endsWith("BUSD")
+                )) {
+                    symbolList.add(symbol);
+                }
+            }
+
+            log.info("Fetched {} active symbols from /ticker/price", symbolList.size());
+            return symbolList;
+        } catch (Exception e) {
+            log.error("Failed to parse ticker/price", e);
+            throw new RuntimeException("Parse error", e);
+        }
+    }
+
     @Override
     public List<String> getAvailableSymbols() {
         List<String> symbols = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
         return symbols != null ? symbols : fetchSymbols();
     }
+
 }

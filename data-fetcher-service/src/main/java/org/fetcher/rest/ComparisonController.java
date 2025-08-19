@@ -29,16 +29,13 @@ public class ComparisonController {
             return Map.of("error", "No data found for symbol: " + cryptocurrency);
         }
 
-        // Сортируем по цене
         List<TickerData> sortedByPrice = tickers.stream()
                 .sorted(Comparator.comparing(TickerData::lastPrice))
                 .collect(Collectors.toList());
 
-        // Находим лучшие цены
         TickerData lowestPrice = sortedByPrice.get(0);
         TickerData highestPrice = sortedByPrice.get(sortedByPrice.size() - 1);
 
-        // Разница в цене
         double priceDifference = highestPrice.lastPrice().doubleValue() - lowestPrice.lastPrice().doubleValue();
         double priceDifferencePercent = (priceDifference / lowestPrice.lastPrice().doubleValue()) * 100;
 

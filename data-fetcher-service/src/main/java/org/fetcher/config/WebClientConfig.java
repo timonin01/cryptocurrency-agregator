@@ -19,6 +19,10 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .exchangeStrategies(strategies)
+                .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .defaultHeader("Accept", "application/json")
+                .defaultHeader("Accept-Language", "en-US,en;q=0.9")
+                .defaultHeader("Cache-Control", "no-cache")
                 .build();
     }
 

@@ -17,8 +17,11 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -44,12 +47,32 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     @PostConstruct
     public void init(){
-        this.cryptocurrency = binanceSymbolService.getAvailableSymbols();
+        try {
+            this.cryptocurrency = binanceSymbolService.getAvailableSymbols();
+            
+            if (this.cryptocurrency == null || this.cryptocurrency.isEmpty()) {
+                log.warn("No symbols available from BinanceSymbolService, WebSocket will not start");
+                this.cryptocurrency = new ArrayList<>();
+            } else {
+                log.info("Sample symbols: {}", this.cryptocurrency.subList(0, Math.min(5, this.cryptocurrency.size())));
+            }
+        } catch (Exception e) {
+            log.error("Error loading Binance symbols", e);
+            this.cryptocurrency = new ArrayList<>();
+        }
     }
 
     @Override
     public void connect(Consumer<TickerData> tickerDataConsumer) {
         this.tickerDataConsumer = tickerDataConsumer;
+
+        if (this.cryptocurrency == null || this.cryptocurrency.isEmpty()) {
+            log.error("Cannot connect to Binance WebSocket: no symbols available");
+            return;
+        }
+        
+        log.info("Starting Binance WebSocket connection with {} symbols", this.cryptocurrency.size());
+        log.info("First 10 symbols: {}", this.cryptocurrency.subList(0, Math.min(10, this.cryptocurrency.size())));
 
         try {
             webSocketClient = new WebSocketClient(new URI(websocketUrl)) {
@@ -61,13 +84,31 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
                 @Override
                 public void onMessage(String message) {
+                    log.info("WebSocket received: {}", message);
                     try {
                         JsonNode jsonNode = objectMapper.readTree(message);
-                        if (jsonNode.has("s") && jsonNode.has("c")) {
-                            TickerData tickerData = parseTickerData(jsonNode);
+
+                        if (jsonNode.has("result") && jsonNode.has("id")) {
+                            log.info("Received subscription confirmation: {}", message);
+                            return;
+                        }
+                        
+                        JsonNode dataNode = jsonNode.has("data") ? jsonNode.get("data") : jsonNode;
+                        
+                        if (dataNode.has("s") && dataNode.has("c")) {
+                            String symbol = dataNode.get("s").asText();
+                            String price = dataNode.get("c").asText();
+                            log.info("Processing ticker data: symbol={}, price={}", symbol, price);
+                            
+                            TickerData tickerData = parseTickerData(dataNode);
                             if (tickerData != null && tickerDataConsumer != null) {
+                                log.info("Sending ticker data to consumer: {}", tickerData.cryptocurrency());
                                 tickerDataConsumer.accept(tickerData);
+                            } else {
+                                log.warn("TickerData is null or consumer is null");
                             }
+                        } else {
+                            log.info("Message doesn't contain ticker data (no 's' or 'c' fields). Message structure: {}", jsonNode.toString());
                         }
                     } catch (Exception e) {
                         log.error("Error parsing WebSocket message: {}", message, e);
@@ -82,10 +123,10 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
                 @Override
                 public void onError(Exception ex) {
-                    log.error("WebSocket error", ex);
+                    log.error("WebSocket error: {}", ex.getMessage(), ex);
                 }
             };
-            webSocketClient.connect();
+            webSocketClient.connectBlocking();
         } catch (Exception e) {
             log.error("Error creating WebSocket connection", e);
         }
@@ -93,8 +134,12 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private void subscribeToTickers() {
         try {
+            List<String> symbolsToSubscribe = cryptocurrency.stream()
+                    .limit(50)
+                    .collect(Collectors.toList());
+            
             ArrayNode params = objectMapper.createArrayNode();
-            for (String symbol : cryptocurrency) {
+            for (String symbol : symbolsToSubscribe) {
                 params.add(symbol.toLowerCase() + "@ticker");
             }
 
@@ -103,9 +148,14 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
             request.set("params", params);
             request.put("id", 1);
 
+            String requestJson = request.toString();
+            log.info("Sending subscription request for {} symbols: {}", symbolsToSubscribe.size(), requestJson);
+
             if (webSocketClient != null && webSocketClient.isOpen()) {
-                webSocketClient.send(request.toString());
+                webSocketClient.send(requestJson);
                 log.info("Subscribed to {} ticker streams", params.size());
+            } else {
+                log.error("WebSocket is not open, cannot subscribe");
             }
         } catch (Exception e) {
             log.error("Failed to subscribe to tickers", e);
@@ -114,6 +164,8 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private TickerData parseTickerData(JsonNode jsonNode) {
         try {
+            long eventTime = jsonNode.get("E").asLong();
+            Instant eventInstant = Instant.ofEpochMilli(eventTime);
             return new TickerData(
                     "BINANCE",
                     jsonNode.get("s").asText(),
@@ -122,7 +174,7 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
                     new BigDecimal(jsonNode.get("l").asText()),
                     new BigDecimal(jsonNode.get("v").asText()),
                     new BigDecimal(jsonNode.get("P").asText()),
-                    Instant.now()
+                    eventInstant
             );
         } catch (Exception e) {
             log.error("Error parsing ticker data from JSON: {}", jsonNode, e);

@@ -69,11 +69,13 @@ public class DataFetcherService {
         if (tickerData != null) {
             String cacheKey = tickerData.exchangeName() + ":" + tickerData.cryptocurrency();
             tickerCache.put(cacheKey, tickerData);
-            log.debug("Received {} data for {}: price={}, change={}%",
+            log.info("Received {} data for {}: price={}, change={}%",
                     tickerData.exchangeName(),
                     tickerData.cryptocurrency(),
                     tickerData.lastPrice(),
                     tickerData.priceChangePercent());
+        } else {
+            log.warn("processTickerData called with null tickerData");
         }
     }
 

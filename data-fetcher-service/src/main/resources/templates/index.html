@@ -107,6 +107,41 @@
       border-bottom: none;
     }
 
+    .ticker-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .ticker-detail-label {
+      font-weight: 600;
+      color: #6c757d;
+    }
+
+    .ticker-detail-value {
+      text-align: right;
+    }
+
+    .ticker-detail-change-up {
+      color: #198754;
+      font-weight: 700;
+    }
+
+    .ticker-detail-change-down {
+      color: #dc3545;
+      font-weight: 700;
+    }
+
+    .crypto-card {
+      transition: all 0.2s ease;
+    }
+
+    .crypto-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
     @media (max-width: 768px) {
       .crypto-card {
         margin-bottom: 15px;
@@ -121,7 +156,7 @@
 <body>
 <nav class="navbar navbar-expand-lg glass mt-2 mx-2">
   <div class="container-fluid">
-    <a class="navbar-brand text-white fw-bold" href="#"><i class="fa-solid fa-chart-line me-2"></i>Crypto Tracker Pro</a>
+    <a class="navbar-brand text-white fw-bold" href="#"><i class="fa-solid fa-chart-line me-2"></i>Crypto Tracker</a>
     <div class="ms-auto d-flex align-items-center gap-3">
       <span class="text-white-50 small"><i class="fa-regular fa-clock me-1"></i><span id="now">--:--:--</span></span>
       <span class="text-white small"><i class="fa-solid fa-signal me-1"></i><span id="conn">Подключение...</span></span>
@@ -174,6 +209,7 @@
   </section>
 </main>
 
+
 <!-- Modal: Comparison -->
 <div class="modal fade" id="cmpModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -183,6 +219,20 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="cmpBody">
+        <div class="text-center text-muted">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="tickerModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tickerModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="tickerModalBody">
         <div class="text-center text-muted">Загрузка...</div>
       </div>
     </div>
@@ -306,41 +356,110 @@
   }
 
   function renderCards(list) {
-    const wrap = document.getElementById('cards');
-    wrap.innerHTML = '';
-    if (!list.length) {
-      wrap.innerHTML = '<div class="col-12"><div class="crypto-card text-center"><div class="text-muted">Нет данных. Измените фильтры или обновите.</div></div></div>';
-      return;
-    }
-    list.forEach(item => {
-      const pct = parseFloat(item.priceChangePercent ?? 0);
-      const cls = pct > 0 ? 'change-up' : (pct < 0 ? 'change-down' : 'change-flat');
-      const exCls = (item.exchangeName || '').toLowerCase();
-      const card = document.createElement('div');
-      card.className = 'col-12 col-md-6 col-lg-4 mb-3';
-      card.innerHTML = `
-        <div class="crypto-card ${exCls}">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
-              <h6 class="mb-1"><i class="fa-solid fa-coins me-2 text-primary"></i>${item.cryptocurrency}</h6>
-              <span class="exchange-badge ${exCls}">${item.exchangeName}</span>
+      const wrap = document.getElementById('cards');
+      wrap.innerHTML = '';
+
+      if (!list.length) {
+        wrap.innerHTML = '<div class="col-12"><div class="crypto-card text-center"><div class="text-muted">Нет данных. Измените фильтры или обновите.</div></div></div>';
+        return;
+      }
+
+      const tickerModal = new bootstrap.Modal(document.getElementById('tickerModal'));
+
+      list.forEach(item => {
+        const pct = parseFloat(item.priceChangePercent ?? 0);
+        const cls = pct > 0 ? 'change-up' : (pct < 0 ? 'change-down' : 'change-flat');
+        const exCls = (item.exchangeName || '').toLowerCase();
+
+        const card = document.createElement('div');
+        card.className = 'col-12 col-md-6 col-lg-4 mb-3';
+        card.innerHTML = `
+          <div class="crypto-card ${exCls}" style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="mb-1"><i class="fa-solid fa-coins me-2 text-primary"></i>${item.cryptocurrency}</h6>
+                <span class="exchange-badge ${exCls}">${item.exchangeName}</span>
+              </div>
+              <small class="text-muted">${new Date(item.timestamp || Date.now()).toLocaleTimeString('ru-RU')}</small>
             </div>
-            <small class="text-muted">${new Date(item.timestamp || Date.now()).toLocaleTimeString('ru-RU')}</small>
+            <div class="price">$${formatCryptoPrice(item.lastPrice)}</div>
+            <div class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</div>
+            <div class="row mt-3 text-center">
+              <div class="col-6"><small class="text-muted">Макс 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.highPrice)}</div></div>
+              <div class="col-6"><small class="text-muted">Мин 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.lowPrice)}</div></div>
+            </div>
+            <div class="mt-3 text-center text-muted">
+              <small><i class="fa-solid fa-chart-column me-1"></i>Объем: ${Number(item.volume).toLocaleString('en-US')}</small>
+            </div>
           </div>
-          <div class="price">$${formatCryptoPrice(item.lastPrice)}</div>
-          <div class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</div>
-          <div class="row mt-3 text-center">
-            <div class="col-6"><small class="text-muted">Макс 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.highPrice)}</div></div>
-            <div class="col-6"><small class="text-muted">Мин 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.lowPrice)}</div></div>
-          </div>
-          <div class="mt-3 text-center text-muted">
-            <small><i class="fa-solid fa-chart-column me-1"></i>Объем: ${Number(item.volume).toLocaleString('en-US')}</small>
-          </div>
+        `;
+
+        card.querySelector('.crypto-card').addEventListener('click', () => {
+          showTickerDetails(item, tickerModal);
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
+    function showTickerDetails(ticker, modal) {
+      const pct = parseFloat(ticker.priceChangePercent ?? 0);
+      const changeClass = pct > 0 ? 'ticker-detail-change-up' :
+                         (pct < 0 ? 'ticker-detail-change-down' : '');
+
+      // Форматируем дату для заголовка
+      const updateTime = new Date(ticker.timestamp || Date.now()).toLocaleString('ru-RU');
+
+      document.getElementById('tickerModalTitle').innerHTML = `
+        <div class="d-flex align-items-center">
+          <span class="me-2">${ticker.cryptocurrency}</span>
+          <span class="exchange-badge ${(ticker.exchangeName || '').toLowerCase()}">
+            ${ticker.exchangeName}
+          </span>
+        </div>
+        <div class="text-muted small mt-1">Обновлено: ${updateTime}</div>
+      `;
+
+      document.getElementById('tickerModalBody').innerHTML = `
+        <div class="ticker-detail-row">
+          <span class="ticker-detail-label">Текущая цена:</span>
+          <span class="ticker-detail-value">
+            $${formatCryptoPrice(ticker.lastPrice)}
+          </span>
+        </div>
+        <div class="ticker-detail-row">
+          <span class="ticker-detail-label">Изменение 24ч:</span>
+          <span class="ticker-detail-value ${changeClass}">
+            ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%
+          </span>
+        </div>
+        <div class="ticker-detail-row">
+          <span class="ticker-detail-label">Максимум 24ч:</span>
+          <span class="ticker-detail-value">
+            $${formatCryptoPrice(ticker.highPrice)}
+          </span>
+        </div>
+        <div class="ticker-detail-row">
+          <span class="ticker-detail-label">Минимум 24ч:</span>
+          <span class="ticker-detail-value">
+            $${formatCryptoPrice(ticker.lowPrice)}
+          </span>
+        </div>
+        <div class="ticker-detail-row">
+          <span class="ticker-detail-label">Объем 24ч:</span>
+          <span class="ticker-detail-value">
+            ${Number(ticker.volume).toLocaleString('en-US')}
+          </span>
+        </div>
+        <div class="mt-3 text-center">
+          <button class="btn btn-sm btn-outline-primary" onclick="window.open('https://www.tradingview.com/chart/?symbol=${ticker.exchangeName}:${ticker.cryptocurrency}', '_blank')">
+            <i class="fa-solid fa-chart-line me-1"></i>Открыть график
+          </button>
         </div>
       `;
-      wrap.appendChild(card);
-    });
-  }
+
+      modal.show();
+    }
 
   function toggleSpinner(flag) {
     document.getElementById('spinner').style.display = flag ? 'block' : 'none';
