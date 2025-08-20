@@ -64,6 +64,9 @@ public class BinanceRestClient implements ExchangeClient {
                                 parseBigDecimal(response.lowPrice()),
                                 parseBigDecimal(response.volume()),
                                 parseBigDecimal(response.priceChangePercent()).multiply(HUNDRED),
+                                parseBigDecimal(response.openPrice()),
+                                parseBigDecimal(response.weightedAvgPrice()),
+                                parseLong(response.count()),
                                 Instant.now()
                         );
                     } catch (Exception e) {
@@ -101,6 +104,15 @@ public class BinanceRestClient implements ExchangeClient {
         } catch (NumberFormatException e) {
             log.warn("Failed to parse BigDecimal value: {}", value);
             return ZERO;
+        }
+    }
+
+    private Long parseLong(String value) {
+        try {
+            return value != null ? Long.parseLong(value) : 0L;
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse Long value: {}", value);
+            return 0L;
         }
     }
 }

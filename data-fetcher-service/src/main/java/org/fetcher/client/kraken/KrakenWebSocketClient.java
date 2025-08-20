@@ -124,6 +124,11 @@ public class KrakenWebSocketClient implements WebSocketExchangeClient {
                     new BigDecimal(data.get("l").get(1).asText()),
                     new BigDecimal(data.get("v").get(1).asText()),
                     calculatePriceChangePercent(data),
+                    data.has("o") ? new BigDecimal(data.get("o").asText()) : BigDecimal.ZERO,
+                    data.has("p") && data.get("p").isArray() && data.get("p").size() > 1 
+                        ? new BigDecimal(data.get("p").get(1).asText()) : BigDecimal.ZERO,
+                    data.has("t") && data.get("t").isArray() && data.get("t").size() > 1 
+                        ? data.get("t").get(1).asLong() : 0L,
                     Instant.now()
             );
         } catch (Exception e) {

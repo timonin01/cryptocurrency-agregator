@@ -76,6 +76,9 @@ public class KrakenRestClient implements ExchangeClient {
                                 parseBigDecimal(tickerData.getLowPrice().get(1)),
                                 parseBigDecimal(tickerData.getVolume().get(1)),
                                 calculatePriceChange(tickerData),
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                0L,
                                 Instant.now()
                         );
                     } catch (Exception e) {

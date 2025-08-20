@@ -84,12 +84,12 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
                 @Override
                 public void onMessage(String message) {
-                    log.info("WebSocket received: {}", message);
+//                    log.info("WebSocket received: {}", message);
                     try {
                         JsonNode jsonNode = objectMapper.readTree(message);
 
                         if (jsonNode.has("result") && jsonNode.has("id")) {
-                            log.info("Received subscription confirmation: {}", message);
+//                            log.info("Received subscription confirmation: {}", message);
                             return;
                         }
                         
@@ -98,11 +98,11 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
                         if (dataNode.has("s") && dataNode.has("c")) {
                             String symbol = dataNode.get("s").asText();
                             String price = dataNode.get("c").asText();
-                            log.info("Processing ticker data: symbol={}, price={}", symbol, price);
+//                            log.info("Processing ticker data: symbol={}, price={}", symbol, price);
                             
                             TickerData tickerData = parseTickerData(dataNode);
                             if (tickerData != null && tickerDataConsumer != null) {
-                                log.info("Sending ticker data to consumer: {}", tickerData.cryptocurrency());
+//                                log.info("Sending ticker data to consumer: {}", tickerData.cryptocurrency());
                                 tickerDataConsumer.accept(tickerData);
                             } else {
                                 log.warn("TickerData is null or consumer is null");
@@ -149,11 +149,11 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
             request.put("id", 1);
 
             String requestJson = request.toString();
-            log.info("Sending subscription request for {} symbols: {}", symbolsToSubscribe.size(), requestJson);
+//            log.info("Sending subscription request for {} symbols: {}", symbolsToSubscribe.size(), requestJson);
 
             if (webSocketClient != null && webSocketClient.isOpen()) {
                 webSocketClient.send(requestJson);
-                log.info("Subscribed to {} ticker streams", params.size());
+//                log.info("Subscribed to {} ticker streams", params.size());
             } else {
                 log.error("WebSocket is not open, cannot subscribe");
             }
@@ -174,6 +174,9 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
                     new BigDecimal(jsonNode.get("l").asText()),
                     new BigDecimal(jsonNode.get("v").asText()),
                     new BigDecimal(jsonNode.get("P").asText()),
+                    jsonNode.has("o") ? new BigDecimal(jsonNode.get("o").asText()) : BigDecimal.ZERO,
+                    jsonNode.has("w") ? new BigDecimal(jsonNode.get("w").asText()) : BigDecimal.ZERO,
+                    jsonNode.has("n") ? jsonNode.get("n").asLong() : 0L,
                     eventInstant
             );
         } catch (Exception e) {

@@ -34,20 +34,24 @@ public class BinanceSymbolServiceImpl implements SymbolService {
 
     @Override
     public List<String> fetchSymbols() {
+        // Сначала проверяем кэш
         List<String> cached = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
         if (cached != null && !cached.isEmpty()) {
             log.info("Using {} cached symbols from Redis", cached.size());
             return cached;
         }
-
+        
+        // Если кэш пустой, пытаемся получить через API
         return attemptFetchFromEndpoint(binanceGetTicketsUrl)
                 .onErrorResume(e -> {
                     log.warn("Primary endpoint failed: {}, trying alternative endpoint", e.getMessage());
+                    // Альтернативный endpoint - более легкий для получения символов
                     String alternativeUrl = "https://api.binance.com/api/v3/ticker/price";
                     return attemptFetchFromAlternativeEndpoint(alternativeUrl);
                 })
                 .onErrorResume(e -> {
                     log.warn("Alternative endpoint failed: {}, trying third endpoint", e.getMessage());
+                    // Третий endpoint - еще более легкий
                     String thirdUrl = "https://api.binance.com/api/v3/ping";
                     return attemptFetchFromThirdEndpoint(thirdUrl);
                 })
@@ -122,6 +126,7 @@ public class BinanceSymbolServiceImpl implements SymbolService {
                 .bodyToMono(String.class)
                 .map(response -> {
                     log.info("Third endpoint responded: {}", response);
+                    // Если третий endpoint работает, используем fallback символы
                     return getDefaultSymbols();
                 })
                 .doOnSuccess(symbols -> {
@@ -163,15 +168,9 @@ public class BinanceSymbolServiceImpl implements SymbolService {
 
                 if (new BigDecimal(lastPriceStr).compareTo(BigDecimal.ZERO) <= 0) continue;
                 if (new BigDecimal(volumeStr).compareTo(new BigDecimal("1000")) < 0) continue;
-
-                if (symbol.endsWith("USDT") || 
-                    symbol.endsWith("BTC") || 
-                    symbol.endsWith("ETH") || 
-                    symbol.endsWith("BNB") ||
-                    symbol.endsWith("USDC") ||
-                    symbol.endsWith("BUSD")) {
-                    symbolList.add(symbol);
-                }
+                
+                // Добавляем все активные пары (убрали фильтрацию по типам)
+                symbolList.add(symbol);
             }
 
             log.info("Fetched {} active symbols from /ticker/24hr", symbolList.size());
@@ -195,14 +194,8 @@ public class BinanceSymbolServiceImpl implements SymbolService {
                 String symbol = price.path("symbol").asText();
                 String priceValue = price.path("price").asText();
 
-                if (!priceValue.equals("0.00000000") && (
-                    symbol.endsWith("USDT") || 
-                    symbol.endsWith("BTC") || 
-                    symbol.endsWith("ETH") || 
-                    symbol.endsWith("BNB") ||
-                    symbol.endsWith("USDC") ||
-                    symbol.endsWith("BUSD")
-                )) {
+                // Добавляем все пары с валидной ценой (убрали фильтрацию по типам)
+                if (!priceValue.equals("0.00000000")) {
                     symbolList.add(symbol);
                 }
             }
@@ -220,5 +213,13 @@ public class BinanceSymbolServiceImpl implements SymbolService {
         List<String> symbols = (List<String>) redisTemplate.opsForValue().get(binanceRedisKey);
         return symbols != null ? symbols : fetchSymbols();
     }
-
+    
+    /**
+     * Принудительно обновляет кэш символов, игнорируя существующие данные
+     */
+    public List<String> refreshSymbols() {
+        log.info("Forcing refresh of Binance symbols cache");
+        redisTemplate.delete(binanceRedisKey);
+        return fetchSymbols();
+    }
 }

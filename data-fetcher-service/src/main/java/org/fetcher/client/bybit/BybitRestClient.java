@@ -70,6 +70,9 @@ public class BybitRestClient implements ExchangeClient {
                                 priceChangePercent != null
                                         ? new BigDecimal(priceChangePercent).multiply(new BigDecimal("100"))
                                         : BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                0L,
                                 Instant.now()
                         );
                     }

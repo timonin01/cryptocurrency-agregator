@@ -121,6 +121,9 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
                     new BigDecimal(data.get("lowPrice24h").asText()),
                     new BigDecimal(data.get("volume24h").asText()),
                     new BigDecimal(data.get("price24hPcnt").asText()).multiply(new BigDecimal("100")),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    0L,
                     Instant.now()
             );
         } catch (Exception e) {

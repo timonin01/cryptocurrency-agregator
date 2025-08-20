@@ -11,5 +11,8 @@ public record TickerData(
         BigDecimal lowPrice,
         BigDecimal volume,
         BigDecimal priceChangePercent,
+        BigDecimal openPrice,
+        BigDecimal weightedAvgPrice,
+        Long count,
         Instant timestamp
 ) {}

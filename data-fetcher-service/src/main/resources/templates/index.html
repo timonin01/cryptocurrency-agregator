@@ -6,79 +6,299 @@
   <title>Crypto Tracker Pro — Multi-Exchange</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --grad-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --grad-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --grad-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --grad-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --grad-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text-primary: #2c3e50;
+      --text-secondary: #6c757d;
+      --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
+      --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.15);
+      --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.2);
+      --border-radius: 20px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--grad-1);
       min-height: 100vh;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text-primary);
+      overflow-x: hidden;
     }
 
+    /* Анимированный фон */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+      z-index: -1;
+      animation: backgroundShift 20s ease-in-out infinite;
+    }
+
+    @keyframes backgroundShift {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.1) rotate(1deg); }
+    }
+
+    /* Навигация */
+    .navbar {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 0;
+    }
+
+    .navbar-brand {
+      font-weight: 900;
+      font-size: 1.75rem;
+      background: linear-gradient(45deg, #fff, #f8f9fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-link {
+      color: rgba(255, 255, 255, 0.9) !important;
+      font-weight: 500;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .nav-link:hover {
+      color: #fff !important;
+      transform: translateY(-2px);
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #fff, transparent);
+      border-radius: 1px;
+    }
+
+    /* Герой секция */
+    .hero {
+      color: #fff;
+      padding: 4rem 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      background: linear-gradient(45deg, #fff, #f8f9fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin-top: 3rem;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      display: block;
+    }
+
+    .hero-stat-label {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Стеклянные карточки */
     .glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-light);
+      transition: var(--transition);
     }
 
-    .hero { color: #fff; padding: 24px; }
+    .glass:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-medium);
+    }
 
+    /* Карточки криптовалют */
     .crypto-card {
-      background: rgba(255,255,255,0.95);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-light);
       border-left: 4px solid transparent;
-      transition: transform 0.2s;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .crypto-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--grad-1);
+      transform: scaleX(0);
+      transition: var(--transition);
+    }
+
+    .crypto-card:hover::before {
+      transform: scaleX(1);
     }
 
     .crypto-card:hover {
-      transform: translateY(-5px);
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: var(--shadow-medium);
     }
 
-    .crypto-card.binance { border-left-color: #f0b90b; }
-    .crypto-card.kraken { border-left-color: #5841d8; }
-    .crypto-card.bybit { border-left-color: #f7931a; }
+    .crypto-card.binance { 
+      border-left-color: #f0b90b; 
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 185, 11, 0.05));
+    }
+    .crypto-card.kraken { 
+      border-left-color: #5841d8; 
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(88, 65, 216, 0.05));
+    }
+    .crypto-card.bybit { 
+      border-left-color: #f7931a; 
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(247, 147, 26, 0.05));
+    }
 
+    /* Бейджи бирж */
     .exchange-badge {
-      font-size: .75rem;
-      border-radius: 999px;
-      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 50px;
+      padding: 0.5rem 1rem;
       font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .exchange-badge.binance { background: #f0b90b; color: #000; }
-    .exchange-badge.kraken { background: #5841d8; color: #fff; }
-    .exchange-badge.bybit { background: #f7931a; color: #fff; }
-
-    .price { font-size: 1.5rem; font-weight: 800; }
-    .change-up { color: #198754; font-weight: 700; }
-    .change-down { color: #dc3545; font-weight: 700; }
-    .change-flat { color: #6c757d; font-weight: 700; }
-
-    .ctrl { padding: 16px; }
-
-    .spinner-wrap {
-      display: none;
-      color: #fff;
-      text-align: center;
-      padding: 16px;
+    .exchange-badge.binance { 
+      background: var(--grad-5); 
+      color: #000; 
+    }
+    .exchange-badge.kraken { 
+      background: var(--grad-2); 
+      color: #fff; 
+    }
+    .exchange-badge.bybit { 
+      background: var(--grad-4); 
+      color: #000; 
     }
 
-    /* Стили для автодополнения */
+    /* Цены и изменения */
+    .price { 
+      font-size: 1.75rem; 
+      font-weight: 900; 
+      margin-bottom: 0.5rem;
+    }
+    .change-up { 
+      color: #198754; 
+      font-weight: 700; 
+      background: rgba(40, 167, 69, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .change-down { 
+      color: #dc3545; 
+      font-weight: 700; 
+      background: rgba(220, 53, 69, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .change-flat { 
+      color: #6c757d; 
+      font-weight: 700; 
+      background: rgba(108, 117, 125, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Панель управления */
+    .ctrl { 
+      padding: 2rem; 
+      margin-bottom: 2rem;
+    }
+
     .search-container {
       position: relative;
+      max-width: 400px;
+      margin: 0 auto;
     }
 
     #symbolInput {
       background: rgba(255,255,255,0.9);
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 25px;
+      padding: 1rem 1.5rem;
       width: 100%;
+      font-size: 1rem;
+      transition: var(--transition);
+      backdrop-filter: blur(10px);
+    }
+
+    #symbolInput:focus {
+      outline: none;
+      border-color: rgba(255,255,255,0.5);
+      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+      transform: scale(1.02);
     }
 
     .autocomplete-suggestions {
@@ -86,432 +306,826 @@
       background: white;
       z-index: 1000;
       width: 100%;
-      max-height: 200px;
+      max-height: 300px;
       overflow-y: auto;
-      border-radius: 0 0 8px 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      box-shadow: var(--shadow-medium);
       display: none;
+      border: 1px solid rgba(0,0,0,0.1);
     }
 
     .autocomplete-suggestion {
-      padding: 8px 12px;
+      padding: 1rem 1.5rem;
       cursor: pointer;
       border-bottom: 1px solid #eee;
+      transition: var(--transition);
     }
 
     .autocomplete-suggestion:hover {
-      background-color: #f8f9fa;
+      background: rgba(102, 126, 234, 0.1);
     }
 
     .autocomplete-suggestion:last-child {
       border-bottom: none;
     }
 
-    .ticker-detail-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
+    /* Спиннер загрузки */
+    .spinner-wrap {
+      display: none;
+      color: #fff;
+      text-align: center;
+      padding: 2rem;
     }
 
-    .ticker-detail-label {
-      font-weight: 600;
-      color: #6c757d;
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
     }
 
-    .ticker-detail-value {
-      text-align: right;
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
-    .ticker-detail-change-up {
-      color: #198754;
-      font-weight: 700;
+    /* Анимации появления */
+    .fade-in {
+      animation: fadeIn 0.8s ease-out;
     }
 
-    .ticker-detail-change-down {
-      color: #dc3545;
-      font-weight: 700;
-    }
-
-    .crypto-card {
-      transition: all 0.2s ease;
-    }
-
-    .crypto-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-    @media (max-width: 768px) {
-      .crypto-card {
-        margin-bottom: 15px;
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
       }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
+    .slide-in {
+      animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Специальные эффекты */
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
       .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .hero-stats {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .crypto-card {
+        padding: 1rem;
+      }
+      
+      .price {
         font-size: 1.5rem;
       }
+    }
+
+    /* Дополнительные стили */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Кнопки */
+    .btn-modern {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      border-radius: 25px;
+      padding: 0.75rem 2rem;
+      color: white;
+      font-weight: 600;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-modern::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-modern:hover::before {
+      left: 100%;
+    }
+
+    .btn-modern:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
   </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg glass mt-2 mx-2">
-  <div class="container-fluid">
-    <a class="navbar-brand text-white fw-bold" href="#"><i class="fa-solid fa-chart-line me-2"></i>Crypto Tracker</a>
-    <div class="ms-auto d-flex align-items-center gap-3">
-      <span class="text-white-50 small"><i class="fa-regular fa-clock me-1"></i><span id="now">--:--:--</span></span>
-      <span class="text-white small"><i class="fa-solid fa-signal me-1"></i><span id="conn">Подключение...</span></span>
+  <!-- Навигация -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-chart-line me-2"></i>
+        Crypto Tracker Pro
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link active" href="/">
+          <i class="fas fa-home me-1"></i>
+          Главная
+        </a>
+        <a class="nav-link" href="/crypto.html">
+          <i class="fas fa-chart-bar me-1"></i>
+          Детали
+        </a>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-<main class="container my-3">
-  <section class="hero glass">
-    <h1 class="h3 fw-bold mb-1"><i class="fa-solid fa-globe me-2"></i>Мульти‑биржевой трекер</h1>
-    <p class="mb-0 text-white-50">Следите за курсами с Binance, Kraken и Bybit. Фильтры, сравнение и автообновление каждые 10 секунд.</p>
-  </section>
-
-  <section class="glass ctrl mt-3">
-    <div class="row g-2 align-items-center">
-      <div class="col-12 col-md-3">
-        <button class="btn btn-primary w-100" id="refreshBtn"><i class="fa-solid fa-rotate me-2"></i>Обновить</button>
-      </div>
-      <div class="col-6 col-md-3">
-        <select id="exchangeFilter" class="form-select">
-          <option value="">Все биржи</option>
-          <option value="BINANCE">Binance</option>
-          <option value="KRAKEN">Kraken</option>
-          <option value="BYBIT">Bybit</option>
-        </select>
-      </div>
-      <div class="col-6 col-md-3 search-container">
-        <input type="text" id="symbolInput" class="form-control" placeholder="Начните вводить (напр. BTC)">
-        <div id="symbolSuggestions" class="autocomplete-suggestions"></div>
-      </div>
-      <div class="col-12 col-md-3">
-        <button class="btn btn-warning w-100" id="compareBtn"><i class="fa-solid fa-scale-balanced me-2"></i>Сравнить цены</button>
-      </div>
+  <!-- Герой секция -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="fade-in">
+        <i class="fas fa-rocket me-3 float"></i>
+        Crypto Tracker Pro
+      </h1>
+      <p class="slide-in">
+        Профессиональная платформа для отслеживания криптовалют в реальном времени
+      </p>
     </div>
   </section>
 
-  <section class="glass mt-3 p-3 d-flex justify-content-between text-white-50">
-    <div><i class="fa-solid fa-exchange-alt me-2"></i>Биржи: <span id="statEx">-</span></div>
-    <div><i class="fa-solid fa-coins me-2"></i>Криптовалюты: <span id="statSy">-</span></div>
-    <div><i class="fa-regular fa-clock me-2"></i>Обновлено: <span id="statUpd">-</span></div>
-  </section>
-
-  <div class="spinner-wrap" id="spinner">
-    <div class="spinner-border text-light" role="status"></div>
-    <div class="mt-2">Загружаем данные...</div>
-  </div>
-
-  <section class="mt-3">
-    <div class="row" id="cards"></div>
-  </section>
-</main>
-
-
-<!-- Modal: Comparison -->
-<div class="modal fade" id="cmpModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="fa-solid fa-balance-scale me-2"></i>Сравнение цен</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="cmpBody">
-        <div class="text-center text-muted">Загрузка...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="tickerModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="tickerModalTitle"></h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="tickerModalBody">
-        <div class="text-center text-muted">Загрузка...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  let dataCache = [];
-  let cmpModal;
-  let inputTimer;
-  const popularSymbols = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOT', 'AVAX', 'BNB', 'DOGE', 'LTC'];
-
-  document.addEventListener('DOMContentLoaded', () => {
-    cmpModal = new bootstrap.Modal(document.getElementById('cmpModal'));
-
-    // Обработчики событий
-    document.getElementById('refreshBtn').addEventListener('click', loadData);
-    document.getElementById('exchangeFilter').addEventListener('change', loadData);
-    document.getElementById('symbolInput').addEventListener('input', handleSymbolInput);
-    document.getElementById('compareBtn').addEventListener('click', showComparison);
-
-    // Таймер для времени и автообновления
-    setInterval(() => document.getElementById('now').textContent = new Date().toLocaleTimeString('ru-RU'), 1000);
-    loadData();
-    setInterval(loadData, 10000);
-  });
-
-  function handleSymbolInput() {
-    const input = this;
-    const suggestionsContainer = document.getElementById('symbolSuggestions');
-
-    // Показываем подсказки
-    if (input.value.length > 0) {
-      const inputValue = input.value.toUpperCase();
-      const filtered = popularSymbols.filter(s => s.includes(inputValue));
-
-      if (filtered.length > 0) {
-        suggestionsContainer.innerHTML = filtered.map(s =>
-          `<div class="autocomplete-suggestion">${s}</div>`
-        ).join('');
-        suggestionsContainer.style.display = 'block';
-
-        // Обработка клика по подсказке
-        document.querySelectorAll('.autocomplete-suggestion').forEach(item => {
-          item.addEventListener('click', () => {
-            input.value = item.textContent;
-            suggestionsContainer.style.display = 'none';
-            loadData();
-          });
-        });
-      } else {
-        suggestionsContainer.style.display = 'none';
-      }
-    } else {
-      suggestionsContainer.style.display = 'none';
-    }
-
-    clearTimeout(inputTimer);
-    inputTimer = setTimeout(() => {
-      if (input.value.length > 0) {
-        loadData();
-      }
-    }, 500);
-  }
-
-  async function loadData() {
-    toggleSpinner(true);
-    try {
-      const exchange = document.getElementById('exchangeFilter').value;
-      const symbol = document.getElementById('symbolInput').value;
-
-      let url = '/api/v1/tickers';
-      const params = new URLSearchParams();
-      if (exchange) params.append('exchangeName', exchange);
-      if (symbol) params.append('cryptocurrency', symbol.toUpperCase().replace("/", ""));
-
-      if (params.toString()) url += `?${params.toString()}`;
-
-      const res = await fetch(url);
-      const json = await res.json();
-      dataCache = Array.isArray(json) ? json : [];
-      document.getElementById('conn').textContent = 'Подключено';
-      document.getElementById('statUpd').textContent = new Date().toLocaleString('ru-RU');
-      updateStats(dataCache);
-      renderCards(dataCache);
-    } catch (e) {
-      console.error(e);
-      document.getElementById('conn').textContent = 'Ошибка соединения';
-      renderCards([]);
-    } finally {
-      toggleSpinner(false);
-    }
-  }
-
-  function updateStats(list) {
-    const ex = new Set(list.map(i => i.exchangeName));
-    const sy = new Set(list.map(i => i.cryptocurrency));
-    document.getElementById('statEx').textContent = ex.size;
-    document.getElementById('statSy').textContent = sy.size;
-  }
-
-  function formatCryptoPrice(price) {
-    const num = Number(price);
-    if (isNaN(num)) return '0.00';
-
-    // Для всех цен показываем минимум 8 знаков после запятой
-    if (num < 1) {
-      // Убираем лишние нули в конце, но оставляем минимум 2 знака
-      const formatted = num.toFixed(12).replace(/\.?0+$/, '');
-      const decimalPlaces = formatted.includes('.') ? formatted.split('.')[1].length : 0;
-      return decimalPlaces < 2 ? num.toFixed(8) : formatted;
-    }
-    // Для цен >= 1 стандартное форматирование с 2 знаками
-    else {
-      return num.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 8 // Добавляем максимум 8 знаков для крупных цен
-      });
-    }
-  }
-
-  function renderCards(list) {
-      const wrap = document.getElementById('cards');
-      wrap.innerHTML = '';
-
-      if (!list.length) {
-        wrap.innerHTML = '<div class="col-12"><div class="crypto-card text-center"><div class="text-muted">Нет данных. Измените фильтры или обновите.</div></div></div>';
-        return;
-      }
-
-      const tickerModal = new bootstrap.Modal(document.getElementById('tickerModal'));
-
-      list.forEach(item => {
-        const pct = parseFloat(item.priceChangePercent ?? 0);
-        const cls = pct > 0 ? 'change-up' : (pct < 0 ? 'change-down' : 'change-flat');
-        const exCls = (item.exchangeName || '').toLowerCase();
-
-        const card = document.createElement('div');
-        card.className = 'col-12 col-md-6 col-lg-4 mb-3';
-        card.innerHTML = `
-          <div class="crypto-card ${exCls}" style="cursor: pointer;">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <div>
-                <h6 class="mb-1"><i class="fa-solid fa-coins me-2 text-primary"></i>${item.cryptocurrency}</h6>
-                <span class="exchange-badge ${exCls}">${item.exchangeName}</span>
+  <!-- Панель управления -->
+  <div class="container">
+    <div class="glass ctrl">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h4 class="text-white mb-3">
+            <i class="fas fa-search me-2"></i>
+            Поиск криптовалюты
+          </h4>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="search-container">
+                <select id="exchangeSelect" class="form-select" style="background: rgba(255,255,255,0.9); border: 2px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 1rem 1.5rem; font-size: 1rem; transition: var(--transition); backdrop-filter: blur(10px);">
+                  <option value="">Все биржи</option>
+                  <option value="Binance">Binance</option>
+                  <option value="Kraken">Kraken</option>
+                  <option value="Bybit">Bybit</option>
+                </select>
               </div>
-              <small class="text-muted">${new Date(item.timestamp || Date.now()).toLocaleTimeString('ru-RU')}</small>
             </div>
-            <div class="price">$${formatCryptoPrice(item.lastPrice)}</div>
-            <div class="${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(2)}%</div>
-            <div class="row mt-3 text-center">
-              <div class="col-6"><small class="text-muted">Макс 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.highPrice)}</div></div>
-              <div class="col-6"><small class="text-muted">Мин 24ч</small><div class="fw-semibold">$${formatCryptoPrice(item.lowPrice)}</div></div>
+            <div class="col-md-6">
+              <div class="search-container">
+                <input type="text" id="symbolInput" placeholder="Поиск по тикеру (например: BTC)" />
+                <div class="autocomplete-suggestions" id="symbolSuggestions"></div>
+              </div>
             </div>
-            <div class="mt-3 text-center text-muted">
-              <small><i class="fa-solid fa-chart-column me-1"></i>Объем: ${Number(item.volume).toLocaleString('en-US')}</small>
+            <div class="col-md-3">
+              <button class="btn btn-modern w-100" onclick="loadData()" style="background: linear-gradient(135deg, #fa709a, #fee140);">
+                <i class="fas fa-search me-2"></i>
+                Поиск
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <div class="d-flex justify-content-md-end align-items-center gap-3">
+            <div class="text-white">
+              <small>
+                <i class="fas fa-clock me-1"></i>
+                Обновлено: <span id="lastUpdate">-</span>
+              </small>
+            </div>
+            <button class="btn btn-modern" onclick="loadData()">
+              <i class="fas fa-sync-alt me-2"></i>
+              Обновить
+            </button>
+            <button class="btn btn-modern" onclick="comparePrices()" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+              <i class="fas fa-balance-scale me-2"></i>
+              Сравнить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Спиннер загрузки -->
+    <div class="spinner-wrap" id="spinnerWrap">
+      <div class="loading-spinner"></div>
+      <p class="mt-3">Загрузка данных...</p>
+    </div>
+
+    <!-- Контейнер для криптовалют -->
+    <div class="row" id="cryptoContainer">
+      <!-- Карточки будут добавлены динамически -->
+    </div>
+  </div>
+
+  <!-- Модальное окно сравнения -->
+  <div class="modal fade" id="compareModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-balance-scale me-2"></i>
+            Сравнение цен
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="compareModalBody">
+          <!-- Содержимое будет добавлено динамически -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно детальной информации -->
+  <div class="modal fade" id="tickerDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-chart-line me-2"></i>
+            <span id="tickerDetailTitle">Детальная информация</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="tickerDetailBody">
+          <!-- Содержимое будет добавлено динамически -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let allSymbols = [];
+    let filteredData = [];
+    let compareModal;
+    let tickerDetailModal;
+    let inputTimer;
+
+    async function loadData() {
+      try {
+        document.getElementById('spinnerWrap').style.display = 'block';
+        
+        const exchange = document.getElementById('exchangeSelect').value;
+        const symbol = document.getElementById('symbolInput').value;
+
+        let url = '/api/v1/tickers';
+        const params = new URLSearchParams();
+        if (exchange) params.append('exchangeName', exchange);
+        if (symbol) params.append('cryptocurrency', symbol.toUpperCase().replace("/", ""));
+
+        if (params.toString()) url += `?${params.toString()}`;
+
+        console.log('Запрос к:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log('Загружены данные:', data);
+        console.log('Количество элементов:', data.length);
+        if (data.length > 0) {
+          console.log('Пример элемента:', data[0]);
+          console.log('Доступные биржи:', [...new Set(data.map(item => item.exchangeName))]);
+        }
+        
+        filteredData = data;
+        renderCards(filteredData);
+        
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
+        
+        document.getElementById('spinnerWrap').style.display = 'none';
+      } catch (error) {
+        console.error('Ошибка:', error);
+        document.getElementById('spinnerWrap').style.display = 'none';
+      }
+    }
+
+
+
+    function renderCards(data) {
+      const container = document.getElementById('cryptoContainer');
+      container.innerHTML = '';
+      
+      if (!data || data.length === 0) {
+        container.innerHTML = `
+          <div class="col-12">
+            <div class="glass text-center p-5">
+              <h4 class="text-white mb-3">Нет данных</h4>
+              <p class="text-white-50">Попробуйте обновить страницу или изменить фильтры поиска</p>
             </div>
           </div>
         `;
-
-        card.querySelector('.crypto-card').addEventListener('click', () => {
-          showTickerDetails(item, tickerModal);
-        });
-
-        wrap.appendChild(card);
+        return;
+      }
+      
+      data.forEach((crypto, index) => {
+        const changePercent = parseFloat(crypto.priceChangePercent || 0);
+        let changeClass = 'change-flat';
+        let changeIcon = 'fa-minus';
+        
+        if (changePercent > 0) {
+          changeClass = 'change-up';
+          changeIcon = 'fa-arrow-up';
+        } else if (changePercent < 0) {
+          changeClass = 'change-down';
+          changeIcon = 'fa-arrow-down';
+        }
+        
+        const card = document.createElement('div');
+        card.className = 'col-lg-4 col-md-6 mb-4 fade-in';
+        card.style.animationDelay = `${index * 0.1}s`;
+        
+        card.innerHTML = `
+          <div class="crypto-card ${(crypto.exchangeName || 'binance').toLowerCase()}" onclick="showTickerDetail('${crypto.cryptocurrency}', '${crypto.exchangeName}')" style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h5 class="mb-1">${crypto.cryptocurrency}</h5>
+                <div class="exchange-badge ${(crypto.exchangeName || 'binance').toLowerCase()}">
+                  <i class="fas fa-exchange-alt"></i>
+                  ${crypto.exchangeName}
+                </div>
+              </div>
+            </div>
+            
+            <div class="price">$${formatPrice(parseFloat(crypto.lastPrice || 0))}</div>
+            <div class="${changeClass}">
+              <i class="fas ${changeIcon}"></i>
+              ${Math.abs(changePercent).toFixed(2)}%
+            </div>
+            
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-label">Макс 24ч</div>
+                <div class="stat-value">$${formatPrice(parseFloat(crypto.highPrice || 0))}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Мин 24ч</div>
+                <div class="stat-value">$${formatPrice(parseFloat(crypto.lowPrice || 0))}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Объем</div>
+                <div class="stat-value">${formatVolume(parseFloat(crypto.volume || 0))}</div>
+              </div>
+            </div>
+            
+            <!-- Кнопка для перехода на внешний сайт -->
+            <div class="mt-3 text-center">
+              <button class="btn btn-sm btn-outline-primary" onclick="openExternalChart('${crypto.cryptocurrency}', '${crypto.exchangeName}')" style="width: 100%;">
+                <i class="fas fa-chart-line me-2"></i>
+                Открыть график
+              </button>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
       });
     }
 
-    function showTickerDetails(ticker, modal) {
-      const pct = parseFloat(ticker.priceChangePercent ?? 0);
-      const changeClass = pct > 0 ? 'ticker-detail-change-up' :
-                         (pct < 0 ? 'ticker-detail-change-down' : '');
-
-      // Форматируем дату для заголовка
-      const updateTime = new Date(ticker.timestamp || Date.now()).toLocaleString('ru-RU');
-
-      document.getElementById('tickerModalTitle').innerHTML = `
-        <div class="d-flex align-items-center">
-          <span class="me-2">${ticker.cryptocurrency}</span>
-          <span class="exchange-badge ${(ticker.exchangeName || '').toLowerCase()}">
-            ${ticker.exchangeName}
-          </span>
-        </div>
-        <div class="text-muted small mt-1">Обновлено: ${updateTime}</div>
-      `;
-
-      document.getElementById('tickerModalBody').innerHTML = `
-        <div class="ticker-detail-row">
-          <span class="ticker-detail-label">Текущая цена:</span>
-          <span class="ticker-detail-value">
-            $${formatCryptoPrice(ticker.lastPrice)}
-          </span>
-        </div>
-        <div class="ticker-detail-row">
-          <span class="ticker-detail-label">Изменение 24ч:</span>
-          <span class="ticker-detail-value ${changeClass}">
-            ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%
-          </span>
-        </div>
-        <div class="ticker-detail-row">
-          <span class="ticker-detail-label">Максимум 24ч:</span>
-          <span class="ticker-detail-value">
-            $${formatCryptoPrice(ticker.highPrice)}
-          </span>
-        </div>
-        <div class="ticker-detail-row">
-          <span class="ticker-detail-label">Минимум 24ч:</span>
-          <span class="ticker-detail-value">
-            $${formatCryptoPrice(ticker.lowPrice)}
-          </span>
-        </div>
-        <div class="ticker-detail-row">
-          <span class="ticker-detail-label">Объем 24ч:</span>
-          <span class="ticker-detail-value">
-            ${Number(ticker.volume).toLocaleString('en-US')}
-          </span>
-        </div>
-        <div class="mt-3 text-center">
-          <button class="btn btn-sm btn-outline-primary" onclick="window.open('https://www.tradingview.com/chart/?symbol=${ticker.exchangeName}:${ticker.cryptocurrency}', '_blank')">
-            <i class="fa-solid fa-chart-line me-1"></i>Открыть график
-          </button>
-        </div>
-      `;
-
-      modal.show();
+    function formatPrice(price) {
+      // Форматируем цену с точностью до 10 знаков после запятой, убирая лишние нули
+      const formatted = price.toFixed(10);
+      return formatted.replace(/\.?0+$/, ''); // Убираем лишние нули в конце
     }
 
-  function toggleSpinner(flag) {
-    document.getElementById('spinner').style.display = flag ? 'block' : 'none';
-  }
+    function formatVolume(volume) {
+      if (volume >= 1e9) {
+        return (volume / 1e9).toFixed(1) + 'B';
+      } else if (volume >= 1e6) {
+        return (volume / 1e6).toFixed(1) + 'M';
+      } else if (volume >= 1e3) {
+        return (volume / 1e3).toFixed(1) + 'K';
+      }
+      return volume.toFixed(0);
+    }
 
-  async function showComparison() {
-      showCmpHtml(`
-        <div class="mb-2"><strong>Символ:</strong> ${symbol}</div>
-        <div class="row g-3">
+    // Фильтрация по бирже
+    document.getElementById('exchangeSelect').addEventListener('change', function(e) {
+      loadData();
+    });
+
+    // Поиск по тикерам
+    document.getElementById('symbolInput').addEventListener('input', function(e) {
+      const query = e.target.value.toUpperCase();
+      const suggestions = document.getElementById('symbolSuggestions');
+      
+      if (query.length < 2) {
+        suggestions.style.display = 'none';
+        loadData();
+        return;
+      }
+      
+      // Показываем подсказки из популярных символов
+      const popularSymbols = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOT', 'AVAX', 'BNB', 'DOGE', 'LTC'];
+      const matches = popularSymbols.filter(s => s.includes(query)).slice(0, 10);
+      
+      if (matches.length > 0) {
+        suggestions.innerHTML = matches.map(symbol => {
+          return `<div class="autocomplete-suggestion" onclick="selectSymbol('${symbol}')">
+            <strong>${symbol}</strong>
+          </div>`;
+        }).join('');
+        suggestions.style.display = 'block';
+      } else {
+        suggestions.style.display = 'none';
+      }
+      
+      // Загружаем данные с задержкой
+      clearTimeout(inputTimer);
+      inputTimer = setTimeout(() => {
+        if (e.target.value.length > 0) {
+          loadData();
+        }
+      }, 500);
+    });
+
+    function selectSymbol(symbol) {
+      document.getElementById('symbolInput').value = symbol;
+      document.getElementById('symbolSuggestions').style.display = 'none';
+      loadData();
+    }
+
+    // Скрываем автодополнение при клике вне
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.search-container')) {
+        document.getElementById('symbolSuggestions').style.display = 'none';
+      }
+    });
+
+    // Функция показа детальной информации о тикере
+    function showTickerDetail(symbol, exchange) {
+      if (!tickerDetailModal) {
+        tickerDetailModal = new bootstrap.Modal(document.getElementById('tickerDetailModal'));
+      }
+      
+      // Находим данные о тикере
+      const tickerData = filteredData.find(crypto => 
+        crypto.cryptocurrency === symbol && crypto.exchangeName === exchange
+      );
+      
+      if (!tickerData) {
+        alert('Данные не найдены');
+        return;
+      }
+      
+      document.getElementById('tickerDetailTitle').textContent = `${symbol} на ${exchange}`;
+      
+      const changePercent = parseFloat(tickerData.priceChangePercent || 0);
+      let changeClass = 'text-muted';
+      let changeIcon = 'fa-minus';
+      
+      if (changePercent > 0) {
+        changeClass = 'text-success';
+        changeIcon = 'fa-arrow-up';
+      } else if (changePercent < 0) {
+        changeClass = 'text-danger';
+        changeIcon = 'fa-arrow-down';
+      }
+      
+      // Определяем URL для внешнего сайта в зависимости от биржи
+      let externalUrl = '';
+      if (exchange === 'Binance') {
+        externalUrl = `https://www.binance.com/en/trade/${symbol}`;
+      } else if (exchange === 'Kraken') {
+        externalUrl = `https://www.kraken.com/prices/x/${symbol.toLowerCase()}`;
+      } else if (exchange === 'Bybit') {
+        externalUrl = `https://www.bybit.com/en/trade/spot/${symbol}`;
+      } else {
+        externalUrl = `https://coinmarketcap.com/currencies/${symbol.toLowerCase()}/`;
+      }
+      
+      const modalContent = `
+        <div class="row">
           <div class="col-md-6">
-            <div class="p-3 border rounded h-100">
-              <div class="text-success fw-semibold mb-1">Лучшая покупка</div>
-              <div><strong>${lowest.exchange}</strong></div>
-              <div>$${formatCryptoPrice(lowest.price)}</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="p-3 border rounded h-100">
-              <div class="text-danger fw-semibold mb-1">Лучшая продажа</div>
-              <div><strong>${highest.exchange}</strong></div>
-              <div>$${formatCryptoPrice(highest.price)}</div>
-            </div>
-          </div>
-        </div>
-        <div class="mt-3 p-3 border rounded">
-          <div><strong>Разница:</strong> $${formatCryptoPrice(diff.absolute)} (${diff.percent}%)</div>
-        </div>
-        <div class="mt-3">
-          <div class="fw-semibold mb-2">Все цены по биржам</div>
-          <div class="border rounded">
-            ${allPrices.map(p => `
-              <div class="d-flex justify-content-between px-2 py-1 border-bottom">
-                <strong>${p.exchange}</strong>
-                <span>$${formatCryptoPrice(p.price)}</span>
-                <span class="${Number(p.change24h) >= 0 ? 'text-success' : 'text-danger'}">
-                  ${Number(p.change24h) >= 0 ? '+' : ''}${Number(p.change24h).toFixed(2)}%
-                </span>
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">Основная информация</h6>
               </div>
-            `).join('')}
+              <div class="card-body">
+                <div class="mb-3">
+                  <strong>Символ:</strong> ${tickerData.cryptocurrency}
+                </div>
+                <div class="mb-3">
+                  <strong>Биржа:</strong> ${tickerData.exchangeName}
+                </div>
+                <div class="mb-3">
+                  <strong>Текущая цена:</strong> 
+                  <span class="h4 text-primary">$${formatPrice(parseFloat(tickerData.lastPrice || 0))}</span>
+                </div>
+                <div class="mb-3">
+                  <strong>Изменение 24ч:</strong>
+                  <span class="${changeClass}">
+                    <i class="fas ${changeIcon}"></i>
+                    ${Math.abs(changePercent).toFixed(2)}%
+                  </span>
+                </div>
+                <div class="mb-3">
+                  <strong>Объем торгов:</strong> ${formatVolume(parseFloat(tickerData.volume || 0))}
+                </div>
+                <div class="mb-3">
+                  <a href="${externalUrl}" target="_blank" class="btn btn-primary me-2">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Открыть график на ${exchange}
+                  </a>
+                  <a href="https://www.tradingview.com/chart/?symbol=${symbol}" target="_blank" class="btn btn-success">
+                    <i class="fas fa-chart-area me-2"></i>
+                    TradingView
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">Статистика 24ч</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <strong>Максимум:</strong> 
+                  <span class="text-success">$${formatPrice(parseFloat(tickerData.highPrice || 0))}</span>
+                </div>
+                <div class="mb-3">
+                  <strong>Минимум:</strong> 
+                  <span class="text-danger">$${formatPrice(parseFloat(tickerData.lowPrice || 0))}</span>
+                </div>
+                <div class="mb-3">
+                  <strong>Цена открытия:</strong> 
+                  <span class="${parseFloat(tickerData.openPrice || 0) > 0 ? '' : 'text-muted'}">
+                    $${formatPrice(parseFloat(tickerData.openPrice || 0))}
+                    ${parseFloat(tickerData.openPrice || 0) === 0 ? '<small class="text-muted">(данные недоступны)</small>' : ''}
+                  </span>
+                </div>
+                <div class="mb-3">
+                  <strong>Взвешенная цена:</strong> 
+                  <span class="${parseFloat(tickerData.weightedAvgPrice || 0) > 0 ? '' : 'text-muted'}">
+                    $${formatPrice(parseFloat(tickerData.weightedAvgPrice || 0))}
+                    ${parseFloat(tickerData.weightedAvgPrice || 0) === 0 ? '<small class="text-muted">(данные недоступны)</small>' : ''}
+                  </span>
+                </div>
+                <div class="mb-3">
+                  <strong>Количество сделок:</strong> 
+                  <span class="${parseInt(tickerData.count || 0) > 0 ? '' : 'text-muted'}">
+                    ${parseInt(tickerData.count || 0).toLocaleString()}
+                    ${parseInt(tickerData.count || 0) === 0 ? '<small class="text-muted">(данные недоступны)</small>' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      `);
-  }
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">График цены (симуляция)</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="priceChart" width="400" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('tickerDetailBody').innerHTML = modalContent;
+      tickerDetailModal.show();
+      
+      // Создаем простой график (симуляция)
+      setTimeout(() => {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        const currentPrice = parseFloat(tickerData.lastPrice || 0);
+        
+        // Генерируем данные для графика
+        const labels = [];
+        const data = [];
+        const now = new Date();
+        
+        for (let i = 23; i >= 0; i--) {
+          const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+          labels.push(time.getHours() + ':00');
+          
+          // Симулируем изменение цены
+          const variation = (Math.random() - 0.5) * 0.1; // ±5% вариация
+          const price = currentPrice * (1 + variation);
+          data.push(price);
+        }
+        
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Цена',
+              data: data,
+              borderColor: changePercent >= 0 ? '#28a745' : '#dc3545',
+              backgroundColor: changePercent >= 0 ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + formatPrice(value);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }, 100);
+    }
 
-  function guessPrimarySymbol() {
-    const first = dataCache[0];
-    return first ? first.cryptocurrency : '';
-  }
+    // Функция для открытия внешнего графика
+    function openExternalChart(symbol, exchange) {
+      let externalUrl = '';
+      
+      // Определяем URL в зависимости от биржи
+      if (exchange === 'Binance') {
+        externalUrl = `https://www.binance.com/en/trade/${symbol}`;
+      } else if (exchange === 'Kraken') {
+        externalUrl = `https://www.kraken.com/prices/x/${symbol.toLowerCase()}`;
+      } else if (exchange === 'Bybit') {
+        externalUrl = `https://www.bybit.com/en/trade/spot/${symbol}`;
+      } else {
+        // По умолчанию используем TradingView для всех остальных случаев
+        externalUrl = `https://www.tradingview.com/chart/?symbol=${symbol}`;
+      }
+      
+      // Открываем в новой вкладке
+      window.open(externalUrl, '_blank');
+    }
 
-  function showCmpHtml(html) {
-    document.getElementById('cmpBody').innerHTML = html;
-  }
-</script>
+    // Функция сравнения цен
+    function comparePrices() {
+      if (!compareModal) {
+        compareModal = new bootstrap.Modal(document.getElementById('compareModal'));
+      }
+      
+      // Группируем данные по символам
+      const groupedBySymbol = {};
+      filteredData.forEach(crypto => {
+        if (!groupedBySymbol[crypto.cryptocurrency]) {
+          groupedBySymbol[crypto.cryptocurrency] = [];
+        }
+        groupedBySymbol[crypto.cryptocurrency].push(crypto);
+      });
+      
+      // Находим символы с ценами на разных биржах
+      const comparisonData = Object.entries(groupedBySymbol)
+        .filter(([symbol, exchanges]) => exchanges.length > 1)
+        .slice(0, 10); // Показываем только первые 10
+      
+      let modalContent = '';
+      
+      if (comparisonData.length === 0) {
+        modalContent = `
+          <div class="text-center p-4">
+            <h5>Нет данных для сравнения</h5>
+            <p class="text-muted">Нужны одинаковые тикеры на разных биржах</p>
+          </div>
+        `;
+      } else {
+        comparisonData.forEach(([symbol, exchanges]) => {
+          const sortedExchanges = exchanges.sort((a, b) => 
+            parseFloat(b.lastPrice) - parseFloat(a.lastPrice)
+          );
+          
+          const highest = sortedExchanges[0];
+          const lowest = sortedExchanges[sortedExchanges.length - 1];
+          const priceDiff = parseFloat(highest.lastPrice) - parseFloat(lowest.lastPrice);
+          const priceDiffPercent = (priceDiff / parseFloat(lowest.lastPrice)) * 100;
+          
+          modalContent += `
+            <div class="card mb-3">
+              <div class="card-header">
+                <h6 class="mb-0">${symbol}</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="text-success">
+                      <strong>Самая высокая цена:</strong><br>
+                      ${highest.exchangeName}: $${formatPrice(parseFloat(highest.lastPrice))}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-danger">
+                      <strong>Самая низкая цена:</strong><br>
+                      ${lowest.exchangeName}: $${formatPrice(parseFloat(lowest.lastPrice))}
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <strong>Разница:</strong> $${formatPrice(priceDiff)} (${priceDiffPercent.toFixed(2)}%)
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted">
+                    Все цены: ${exchanges.map(e => `${e.exchangeName}: $${formatPrice(parseFloat(e.lastPrice))}`).join(' | ')}
+                  </small>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      document.getElementById('compareModalBody').innerHTML = modalContent;
+      compareModal.show();
+    }
+
+    // Загрузить данные при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      
+      // Добавляем пульсацию к кнопке обновления
+      const refreshBtn = document.querySelector('.btn-modern');
+      refreshBtn.classList.add('pulse');
+    });
+    
+    // Обновлять каждые 15 секунд
+    setInterval(loadData, 15000);
+  </script>
 </body>
 </html>
