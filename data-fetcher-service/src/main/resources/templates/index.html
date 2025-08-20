@@ -208,6 +208,10 @@
       border-left-color: #f7931a; 
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(247, 147, 26, 0.05));
     }
+    .crypto-card.coinbase_exchange { 
+      border-left-color: #0052ff; 
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(0, 82, 255, 0.05));
+    }
 
     /* Бейджи бирж */
     .exchange-badge {
@@ -227,11 +231,15 @@
     }
     .exchange-badge.kraken { 
       background: var(--grad-2); 
-      color: #fff; 
+      color: #fff;
     }
     .exchange-badge.bybit { 
       background: var(--grad-4); 
       color: #000; 
+    }
+    .exchange-badge.coinbase_exchange { 
+      background: linear-gradient(135deg, #0052ff, #00d4ff); 
+      color: #fff; 
     }
 
     /* Цены и изменения */
@@ -416,7 +424,7 @@
       .crypto-card {
         padding: 1rem;
       }
-      
+
       .price {
         font-size: 1.5rem;
       }
@@ -504,8 +512,8 @@
           Детали
         </a>
       </div>
-    </div>
-  </nav>
+  </div>
+</nav>
 
   <!-- Герой секция -->
   <section class="hero">
@@ -532,13 +540,14 @@
           <div class="row">
             <div class="col-md-3">
               <div class="search-container">
-                <select id="exchangeSelect" class="form-select" style="background: rgba(255,255,255,0.9); border: 2px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 1rem 1.5rem; font-size: 1rem; transition: var(--transition); backdrop-filter: blur(10px);">
+                                <select id="exchangeSelect" class="form-select" style="background: rgba(255,255,255,0.9); border: 2px solid rgba(255,255,255,0.2); border-radius: 25px; padding: 1rem 1.5rem; font-size: 1rem; transition: var(--transition); backdrop-filter: blur(10px);">
                   <option value="">Все биржи</option>
                   <option value="Binance">Binance</option>
                   <option value="Kraken">Kraken</option>
                   <option value="Bybit">Bybit</option>
+                  <option value="COINBASE_EXCHANGE">Coinbase Exchange</option>
                 </select>
-              </div>
+      </div>
             </div>
             <div class="col-md-6">
               <div class="search-container">
@@ -571,7 +580,7 @@
               Сравнить
             </button>
           </div>
-        </div>
+      </div>
       </div>
     </div>
 
@@ -590,8 +599,8 @@
   <!-- Модальное окно сравнения -->
   <div class="modal fade" id="compareModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
+    <div class="modal-content">
+      <div class="modal-header">
           <h5 class="modal-title">
             <i class="fas fa-balance-scale me-2"></i>
             Сравнение цен
@@ -600,16 +609,16 @@
         </div>
         <div class="modal-body" id="compareModalBody">
           <!-- Содержимое будет добавлено динамически -->
-        </div>
       </div>
     </div>
   </div>
+</div>
 
   <!-- Модальное окно детальной информации -->
   <div class="modal fade" id="tickerDetailModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
+    <div class="modal-content">
+      <div class="modal-header">
           <h5 class="modal-title">
             <i class="fas fa-chart-line me-2"></i>
             <span id="tickerDetailTitle">Детальная информация</span>
@@ -618,33 +627,33 @@
         </div>
         <div class="modal-body" id="tickerDetailBody">
           <!-- Содержимое будет добавлено динамически -->
-        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
+<script>
     let allSymbols = [];
     let filteredData = [];
     let compareModal;
     let tickerDetailModal;
-    let inputTimer;
+  let inputTimer;
 
-    async function loadData() {
-      try {
+  async function loadData() {
+    try {
         document.getElementById('spinnerWrap').style.display = 'block';
         
         const exchange = document.getElementById('exchangeSelect').value;
-        const symbol = document.getElementById('symbolInput').value;
+      const symbol = document.getElementById('symbolInput').value;
 
-        let url = '/api/v1/tickers';
-        const params = new URLSearchParams();
-        if (exchange) params.append('exchangeName', exchange);
-        if (symbol) params.append('cryptocurrency', symbol.toUpperCase().replace("/", ""));
+      let url = '/api/v1/tickers';
+      const params = new URLSearchParams();
+      if (exchange) params.append('exchangeName', exchange);
+      if (symbol) params.append('cryptocurrency', symbol.toUpperCase().replace("/", ""));
 
-        if (params.toString()) url += `?${params.toString()}`;
+      if (params.toString()) url += `?${params.toString()}`;
 
         console.log('Запрос к:', url);
         
@@ -687,7 +696,7 @@
         `;
         return;
       }
-      
+
       data.forEach((crypto, index) => {
         const changePercent = parseFloat(crypto.priceChangePercent || 0);
         let changeClass = 'change-flat';
@@ -700,19 +709,19 @@
           changeClass = 'change-down';
           changeIcon = 'fa-arrow-down';
         }
-        
+
         const card = document.createElement('div');
         card.className = 'col-lg-4 col-md-6 mb-4 fade-in';
         card.style.animationDelay = `${index * 0.1}s`;
         
         card.innerHTML = `
-          <div class="crypto-card ${(crypto.exchangeName || 'binance').toLowerCase()}" onclick="showTickerDetail('${crypto.cryptocurrency}', '${crypto.exchangeName}')" style="cursor: pointer;">
+          <div class="crypto-card ${getExchangeClass(crypto.exchangeName)}" onclick="showTickerDetail('${crypto.cryptocurrency}', '${crypto.exchangeName}')" style="cursor: pointer;">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
                 <h5 class="mb-1">${crypto.cryptocurrency}</h5>
-                <div class="exchange-badge ${(crypto.exchangeName || 'binance').toLowerCase()}">
+                <div class="exchange-badge ${getExchangeClass(crypto.exchangeName)}">
                   <i class="fas fa-exchange-alt"></i>
-                  ${crypto.exchangeName}
+                  ${getExchangeDisplayName(crypto.exchangeName)}
                 </div>
               </div>
             </div>
@@ -747,7 +756,7 @@
             </div>
           </div>
         `;
-        
+
         container.appendChild(card);
       });
     }
@@ -838,7 +847,7 @@
         return;
       }
       
-      document.getElementById('tickerDetailTitle').textContent = `${symbol} на ${exchange}`;
+      document.getElementById('tickerDetailTitle').textContent = `${symbol} на ${getExchangeDisplayName(exchange)}`;
       
       const changePercent = parseFloat(tickerData.priceChangePercent || 0);
       let changeClass = 'text-muted';
@@ -860,6 +869,8 @@
         externalUrl = `https://www.kraken.com/prices/x/${symbol.toLowerCase()}`;
       } else if (exchange === 'Bybit') {
         externalUrl = `https://www.bybit.com/en/trade/spot/${symbol}`;
+      } else if (exchange === 'COINBASE_EXCHANGE') {
+        externalUrl = `https://pro.coinbase.com/trade/${symbol}`;
       } else {
         externalUrl = `https://coinmarketcap.com/currencies/${symbol.toLowerCase()}/`;
       }
@@ -895,7 +906,7 @@
                 <div class="mb-3">
                   <a href="${externalUrl}" target="_blank" class="btn btn-primary me-2">
                     <i class="fas fa-chart-line me-2"></i>
-                    Открыть график на ${exchange}
+                    Открыть график на ${getExchangeDisplayName(exchange)}
                   </a>
                   <a href="https://www.tradingview.com/chart/?symbol=${symbol}" target="_blank" class="btn btn-success">
                     <i class="fas fa-chart-area me-2"></i>
@@ -949,7 +960,7 @@
             <div class="card">
               <div class="card-header">
                 <h6 class="mb-0">График цены (симуляция)</h6>
-              </div>
+        </div>
               <div class="card-body">
                 <canvas id="priceChart" width="400" height="200"></canvas>
               </div>
@@ -1017,6 +1028,22 @@
       }, 100);
     }
 
+    // Вспомогательные функции для бирж
+    function getExchangeClass(exchangeName) {
+      if (!exchangeName) return 'binance';
+      
+      const exchange = exchangeName.toLowerCase();
+      if (exchange === 'coinbase_exchange') return 'coinbase_exchange';
+      return exchange;
+    }
+    
+    function getExchangeDisplayName(exchangeName) {
+      if (!exchangeName) return 'Binance';
+      
+      if (exchangeName === 'COINBASE_EXCHANGE') return 'Coinbase Exchange';
+      return exchangeName;
+    }
+
     // Функция для открытия внешнего графика
     function openExternalChart(symbol, exchange) {
       let externalUrl = '';
@@ -1028,6 +1055,8 @@
         externalUrl = `https://www.kraken.com/prices/x/${symbol.toLowerCase()}`;
       } else if (exchange === 'Bybit') {
         externalUrl = `https://www.bybit.com/en/trade/spot/${symbol}`;
+      } else if (exchange === 'COINBASE_EXCHANGE') {
+        externalUrl = `https://pro.coinbase.com/trade/${symbol}`;
       } else {
         // По умолчанию используем TradingView для всех остальных случаев
         externalUrl = `https://www.tradingview.com/chart/?symbol=${symbol}`;
@@ -1101,9 +1130,9 @@
                   <strong>Разница:</strong> $${formatPrice(priceDiff)} (${priceDiffPercent.toFixed(2)}%)
                 </div>
                 <div class="mt-2">
-                  <small class="text-muted">
-                    Все цены: ${exchanges.map(e => `${e.exchangeName}: $${formatPrice(parseFloat(e.lastPrice))}`).join(' | ')}
-                  </small>
+                                       <small class="text-muted">
+                       Все цены: ${exchanges.map(e => `${getExchangeDisplayName(e.exchangeName)}: $${formatPrice(parseFloat(e.lastPrice))}`).join(' | ')}
+                     </small>
                 </div>
               </div>
             </div>
@@ -1126,6 +1155,6 @@
     
     // Обновлять каждые 15 секунд
     setInterval(loadData, 15000);
-  </script>
+</script>
 </body>
 </html>

@@ -424,7 +424,7 @@
                                 <i class="fas fa-wifi me-2"></i>
                                 Статус подключения
                             </h4>
-                            <div id="statusInfo">Загрузка...</div>
+                    <div id="statusInfo">Загрузка...</div>
                         </div>
                         <div class="text-end">
                             <div class="loading-spinner" id="statusSpinner"></div>
@@ -544,22 +544,22 @@
                                     <i class="fas ${changeIcon}"></i>
                                     ${Math.abs(changePercent).toFixed(2)}%
                                 </div>
+                                </div>
                             </div>
-                        </div>
-                        
+                            
                         <div class="stats-grid">
                             <div class="stat-item">
                                 <div class="stat-label">Максимум 24ч</div>
                                 <div class="stat-value">$${formatPrice(parseFloat(crypto.highPrice || 0))}</div>
-                            </div>
+                                    </div>
                             <div class="stat-item">
                                 <div class="stat-label">Минимум 24ч</div>
                                 <div class="stat-value">$${formatPrice(parseFloat(crypto.lowPrice || 0))}</div>
-                            </div>
+                                    </div>
                             <div class="stat-item">
                                 <div class="stat-label">Объем торгов</div>
                                 <div class="stat-value">${formatVolume(parseFloat(crypto.volume || 0))}</div>
-                            </div>
+                                </div>
                             <div class="stat-item">
                                 <div class="stat-label">Обновлено</div>
                                 <div class="stat-value">${new Date(crypto.timestamp || Date.now()).toLocaleTimeString('ru-RU')}</div>
