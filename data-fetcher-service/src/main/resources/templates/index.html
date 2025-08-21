@@ -632,6 +632,24 @@
   </div>
 </div>
 
+  <!-- Модальное окно арбитража -->
+  <div class="modal fade" id="arbitrageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-chart-line me-2"></i>
+            Арбитражные возможности
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="arbitrageModalBody">
+          <!-- Содержимое будет добавлено динамически -->
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -1130,9 +1148,15 @@
                   <strong>Разница:</strong> $${formatPrice(priceDiff)} (${priceDiffPercent.toFixed(2)}%)
                 </div>
                 <div class="mt-2">
-                                       <small class="text-muted">
-                       Все цены: ${exchanges.map(e => `${getExchangeDisplayName(e.exchangeName)}: $${formatPrice(parseFloat(e.lastPrice))}`).join(' | ')}
-                     </small>
+                  <small class="text-muted">
+                    Все цены: ${exchanges.map(e => `${getExchangeDisplayName(e.exchangeName)}: $${formatPrice(parseFloat(e.lastPrice))}`).join(' | ')}
+                  </small>
+                </div>
+                <div class="mt-3">
+                  <button class="btn btn-sm btn-warning" onclick="showArbitrageOpportunity('${symbol}')">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Арбитраж
+                  </button>
                 </div>
               </div>
             </div>
@@ -1142,6 +1166,74 @@
       
       document.getElementById('compareModalBody').innerHTML = modalContent;
       compareModal.show();
+    }
+
+    // Функция для отображения арбитражных возможностей
+    async function showArbitrageOpportunity(symbol) {
+      try {
+        const response = await fetch(`/api/v1/comparison/arbitrage/${symbol}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          alert(`Ошибка: ${data.error}`);
+          return;
+        }
+        
+        // Создаем модальное окно для арбитража
+        const arbitrageModal = new bootstrap.Modal(document.getElementById('arbitrageModal'));
+        
+        const modalContent = `
+          <div class="card">
+            <div class="card-header bg-warning text-dark">
+              <h5 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                Арбитражные возможности для ${data.symbol}
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="alert alert-success">
+                    <h6><i class="fas fa-shopping-cart me-2"></i>Покупать на:</h6>
+                    <strong>${data.buyFrom.exchange}</strong><br>
+                    Цена: $${formatPrice(data.buyFrom.price)}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="alert alert-danger">
+                    <h6><i class="fas fa-sell me-2"></i>Продавать на:</h6>
+                    <strong>${data.sellTo.exchange}</strong><br>
+                    Цена: $${formatPrice(data.sellTo.price)}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="alert alert-info">
+                <h6><i class="fas fa-chart-bar me-2"></i>Потенциальная прибыль:</h6>
+                <strong>$${formatPrice(data.potentialProfit.absolute)}</strong> 
+                (${data.potentialProfit.percent.toFixed(2)}%)
+              </div>
+              
+              <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Риски:</h6>
+                <small>${data.risk}</small>
+              </div>
+              
+              <div class="text-muted small">
+                <i class="fas fa-clock me-1"></i>
+                Обновлено: ${new Date(data.timestamp).toLocaleString('ru-RU')}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('arbitrageModalBody').innerHTML = modalContent;
+        arbitrageModal.show();
+        
+      } catch (error) {
+        console.error('Ошибка при получении арбитражных данных:', error);
+        alert('Ошибка при получении арбитражных данных');
+      }
     }
 
     // Загрузить данные при загрузке страницы

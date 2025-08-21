@@ -1,5 +1,7 @@
 package org.fetcher.service;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.ExchangeClient;
 import org.fetcher.client.WebSocketExchangeClient;
@@ -18,18 +20,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class DataFetcherService {
 
     private final List<ExchangeClient> exchangeClients;
     private final List<WebSocketExchangeClient> webSocketExchangeClients;
 
     private final ConcurrentHashMap<String, TickerData> tickerCache = new ConcurrentHashMap<>();
-
-    public DataFetcherService(List<ExchangeClient> exchangeClients,
-                              List<WebSocketExchangeClient> webSocketExchangeClients) {
-        this.exchangeClients = exchangeClients;
-        this.webSocketExchangeClients = webSocketExchangeClients;
-    }
 
     @PostConstruct
     public void init() {
@@ -136,12 +133,6 @@ public class DataFetcherService {
                 .map(TickerData::exchangeName)
                 .distinct()
                 .toList();
-    }
-
-    public boolean isAnyWebSocketConnected() {
-        return webSocketExchangeClients != null &&
-                webSocketExchangeClients.stream()
-                        .anyMatch(WebSocketExchangeClient::isConnected);
     }
 
     public boolean isWebSocketConnected(String exchangeName) {

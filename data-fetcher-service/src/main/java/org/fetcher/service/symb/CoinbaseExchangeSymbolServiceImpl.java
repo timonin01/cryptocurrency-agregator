@@ -64,6 +64,13 @@ public class CoinbaseExchangeSymbolServiceImpl implements SymbolService {
                     String symbol = node.path("id").asText();
                     String normalizedSymbol = symbol.replace("-", "");
                     symbolList.add(normalizedSymbol);
+                    
+                    // Добавляем также альтернативные варианты для поиска
+                    // Например, для BTC-USD добавляем BTCUSD и BTCUSDT
+                    if (symbol.endsWith("-USD")) {
+                        String base = symbol.substring(0, symbol.length() - 4); // убираем "-USD"
+                        symbolList.add(base + "USDT"); // добавляем BTCUSDT
+                    }
                 }
             }
             return symbolList;

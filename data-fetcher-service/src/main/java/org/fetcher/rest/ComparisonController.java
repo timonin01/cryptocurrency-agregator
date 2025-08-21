@@ -18,7 +18,6 @@ public class ComparisonController {
 
     private final DataFetcherService dataFetcherService;
 
-    // Сравнить цены по символу между биржами
     @GetMapping("/{cryptocurrency}")
     public Map<String, Object> comparePrices(@PathVariable String cryptocurrency) {
         List<TickerData> tickers = dataFetcherService.getTickerDataForCryptocurrency(cryptocurrency)
@@ -67,7 +66,6 @@ public class ComparisonController {
         );
     }
 
-    // Получить арбитражные возможности
     @GetMapping("/arbitrage/{cryptocurrency}")
     public Map<String, Object> getArbitrageOpportunities(@PathVariable String cryptocurrency) {
         List<TickerData> tickers = dataFetcherService.getTickerDataForCryptocurrency(cryptocurrency)
@@ -78,13 +76,12 @@ public class ComparisonController {
             return Map.of("error", "Need at least 2 exchanges for arbitrage");
         }
 
-        // Сортируем по цене
         List<TickerData> sorted = tickers.stream()
                 .sorted(Comparator.comparing(TickerData::lastPrice))
                 .collect(Collectors.toList());
 
-        TickerData buyFrom = sorted.get(0); // Покупаем по самой низкой цене
-        TickerData sellTo = sorted.get(sorted.size() - 1); // Продаем по самой высокой
+        TickerData buyFrom = sorted.get(0);
+        TickerData sellTo = sorted.get(sorted.size() - 1);
 
         double profit = sellTo.lastPrice().doubleValue() - buyFrom.lastPrice().doubleValue();
         double profitPercent = (profit / buyFrom.lastPrice().doubleValue()) * 100;
@@ -107,4 +104,5 @@ public class ComparisonController {
                 "risk", "High - includes fees, slippage, and execution time"
         );
     }
+
 }

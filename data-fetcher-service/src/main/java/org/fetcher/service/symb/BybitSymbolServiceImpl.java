@@ -2,6 +2,7 @@ package org.fetcher.service.symb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.service.SymbolService;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class BybitSymbolServiceImpl implements SymbolService {
 
     @Value("${bybit.get-tickets-url}")

@@ -65,6 +65,11 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
             return Mono.empty();
         }
 
+        // Проверяем, есть ли символ в списке доступных
+        if (!cryptocurrency.contains(symbol)) {
+            log.debug("Symbol {} not found in available symbols, trying to format", symbol);
+        }
+
         String coinbaseSymbol = formatSymbolToCoinbase(symbol);
         if (coinbaseSymbol == null) {
             log.warn("Invalid symbol format: {}", symbol);
@@ -139,20 +144,10 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
         if (symbol == null || symbol.length() < 4) {
             return null;
         }
-        
-        // Если символ уже в формате "BTC-USD", возвращаем как есть
         if (symbol.contains("-")) {
             return symbol;
         }
-        
-        // Преобразуем символы в формат Coinbase
-        // BTCUSD -> BTC-USD
-        // ETHUSDT -> ETH-USD (Coinbase не поддерживает USDT)
-        // ADAUSD -> ADA-USD
-        
-        // Определяем base и quote более гибко
         String base, quote;
-        
         if (symbol.endsWith("USD")) {
             base = symbol.substring(0, symbol.length() - 3);
             quote = "USD";
@@ -165,16 +160,22 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
         } else if (symbol.endsWith("ETH")) {
             base = symbol.substring(0, symbol.length() - 3);
             quote = "ETH";
+        } else if (symbol.endsWith("EUR")) {
+            base = symbol.substring(0, symbol.length() - 3);
+            quote = "EUR";
+        } else if (symbol.endsWith("GBP")) {
+            base = symbol.substring(0, symbol.length() - 3);
+            quote = "GBP";
         } else {
-            // Для остальных случаев используем простую логику
             if (symbol.length() >= 6) {
                 base = symbol.substring(0, 3);
                 quote = symbol.substring(3);
             } else {
-                return null; // Слишком короткий символ
+                return null;
             }
         }
         
+        log.debug("Formatted symbol {} -> {}-{}", symbol, base, quote);
         return base + "-" + quote;
     }
 

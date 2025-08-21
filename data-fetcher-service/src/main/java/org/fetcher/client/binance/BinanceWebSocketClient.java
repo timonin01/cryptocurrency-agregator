@@ -49,7 +49,6 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
     public void init(){
         try {
             this.cryptocurrency = binanceSymbolService.getAvailableSymbols();
-            
             if (this.cryptocurrency == null || this.cryptocurrency.isEmpty()) {
                 log.warn("No symbols available from BinanceSymbolService, WebSocket will not start");
                 this.cryptocurrency = new ArrayList<>();
@@ -87,17 +86,14 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 //                    log.info("WebSocket received: {}", message);
                     try {
                         JsonNode jsonNode = objectMapper.readTree(message);
-
                         if (jsonNode.has("result") && jsonNode.has("id")) {
 //                            log.info("Received subscription confirmation: {}", message);
                             return;
                         }
-                        
                         JsonNode dataNode = jsonNode.has("data") ? jsonNode.get("data") : jsonNode;
-                        
                         if (dataNode.has("s") && dataNode.has("c")) {
-                            String symbol = dataNode.get("s").asText();
-                            String price = dataNode.get("c").asText();
+//                            String symbol = dataNode.get("s").asText();
+//                            String price = dataNode.get("c").asText();
 //                            log.info("Processing ticker data: symbol={}, price={}", symbol, price);
                             
                             TickerData tickerData = parseTickerData(dataNode);

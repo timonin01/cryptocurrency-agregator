@@ -63,10 +63,10 @@ public class BybitRestClient implements ExchangeClient {
                         return new TickerData(
                                 getExchangeName(),
                                 symbol_val,
-                                lastPrice != null ? new BigDecimal(lastPrice) : BigDecimal.ZERO,
-                                highPrice != null ? new BigDecimal(highPrice) : BigDecimal.ZERO,
-                                lowPrice != null ? new BigDecimal(lowPrice) : BigDecimal.ZERO,
-                                volume != null ? new BigDecimal(volume) : BigDecimal.ZERO,
+                                parseBigDecimal(lastPrice),
+                                parseBigDecimal(highPrice),
+                                parseBigDecimal(lowPrice),
+                                parseBigDecimal(volume),
                                 priceChangePercent != null
                                         ? new BigDecimal(priceChangePercent).multiply(new BigDecimal("100"))
                                         : BigDecimal.ZERO,
@@ -83,6 +83,10 @@ public class BybitRestClient implements ExchangeClient {
                     log.error("Failed to fetch ticker for symbol {} in BybitRestClient: {}", symbol, ex.getMessage());
                     return Mono.empty();
                 });
+    }
+
+    private BigDecimal parseBigDecimal(String val){
+        return val != null ? new BigDecimal(val) : BigDecimal.ZERO;
     }
 
     @Override

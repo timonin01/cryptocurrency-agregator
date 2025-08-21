@@ -81,6 +81,24 @@ public class BinanceRestClient implements ExchangeClient {
                 .filter(tickerData -> tickerData != null);
     }
 
+    private BigDecimal parseBigDecimal(String val) {
+        try {
+            return val != null ? new BigDecimal(val) : ZERO;
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse BigDecimal value: {}", val);
+            return ZERO;
+        }
+    }
+
+    private Long parseLong(String val) {
+        try {
+            return val != null ? Long.parseLong(val) : 0L;
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse Long value: {}", val);
+            return 0L;
+        }
+    }
+
     @Override
     public Flux<TickerData> getAllTickers() {
         return Flux.fromIterable(cryptocurrency)
@@ -96,23 +114,5 @@ public class BinanceRestClient implements ExchangeClient {
     @Override
     public boolean isEnabled() {
         return binanceClientEnabled;
-    }
-
-    private BigDecimal parseBigDecimal(String value) {
-        try {
-            return value != null ? new BigDecimal(value) : ZERO;
-        } catch (NumberFormatException e) {
-            log.warn("Failed to parse BigDecimal value: {}", value);
-            return ZERO;
-        }
-    }
-
-    private Long parseLong(String value) {
-        try {
-            return value != null ? Long.parseLong(value) : 0L;
-        } catch (NumberFormatException e) {
-            log.warn("Failed to parse Long value: {}", value);
-            return 0L;
-        }
     }
 }
