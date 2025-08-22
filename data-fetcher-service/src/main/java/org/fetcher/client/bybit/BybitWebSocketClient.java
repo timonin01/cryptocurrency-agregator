@@ -3,6 +3,8 @@ package org.fetcher.client.bybit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
@@ -20,25 +22,23 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class BybitWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
     private final BybitSymbolServiceImpl bybitSymbolService;
-    private final String websocketUrl;
+    private final BybitWebSocketParser bybitWebSocketParser;
+
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
-    private final boolean bybitWebSocketClientEnabled;
-    private List<String> cryptocurrency;
+    @Value("${bybit.websocket-enabled:false}")
+    private boolean bybitWebSocketClientEnabled;
 
-    public BybitWebSocketClient(@Value("${bybit.websocket-url:wss://stream.bybit.com/v5/public/spot}") String websocketUrl,
-                                BybitSymbolServiceImpl bybitSymbolService,
-                                @Value("${bybit.websocket-enabled:false}") boolean bybitWebSocketClientEnabled) {
-        this.websocketUrl = websocketUrl;
-        this.bybitSymbolService = bybitSymbolService;
-        this.objectMapper = new ObjectMapper();
-        this.bybitWebSocketClientEnabled = bybitWebSocketClientEnabled;
-    }
+    @Value("${bybit.websocket-url:wss://stream.bybit.com/v5/public/spot}")
+    private String websocketUrl;
+
+    private List<String> cryptocurrency;
 
     @PostConstruct
     public void init(){
@@ -65,7 +65,7 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
                         if (jsonNode.has("data") && jsonNode.get("data").has("data")) {
                             JsonNode data = jsonNode.get("data").get("data");
                             if (data.has("symbol") && data.has("lastPricePx")) {
-                                TickerData tickerData = parseTickerData(data);
+                                TickerData tickerData = bybitWebSocketParser.parseTickerData(data);
                                 if (tickerData != null && tickerDataConsumer != null) {
                                     tickerDataConsumer.accept(tickerData);
                                 }
@@ -108,27 +108,6 @@ public class BybitWebSocketClient implements WebSocketExchangeClient {
         } catch (Exception e) {
             log.error("Error creating subscription message", e);
             return "{}";
-        }
-    }
-
-    private TickerData parseTickerData(JsonNode data) {
-        try {
-            return new TickerData(
-                    "BYBIT",
-                    data.get("symbol").asText(),
-                    new BigDecimal(data.get("lastPricePx").asText()),
-                    new BigDecimal(data.get("highPrice24h").asText()),
-                    new BigDecimal(data.get("lowPrice24h").asText()),
-                    new BigDecimal(data.get("volume24h").asText()),
-                    new BigDecimal(data.get("price24hPcnt").asText()).multiply(new BigDecimal("100")),
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    0L,
-                    Instant.now()
-            );
-        } catch (Exception e) {
-            log.error("Error parsing ticker data from JSON: {}", data, e);
-            return null;
         }
     }
 

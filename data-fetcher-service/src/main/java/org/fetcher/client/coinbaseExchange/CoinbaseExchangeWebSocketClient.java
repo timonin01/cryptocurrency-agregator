@@ -29,6 +29,7 @@ public class CoinbaseExchangeWebSocketClient implements WebSocketExchangeClient 
 
     private final ObjectMapper objectMapper;
     private final CoinbaseExchangeSymbolServiceImpl coinbaseExchangeSymbolService;
+    private final CoinBaseExchangeParser coinBaseExchangeParser;
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
@@ -65,7 +66,7 @@ public class CoinbaseExchangeWebSocketClient implements WebSocketExchangeClient 
                     try {
                         JsonNode jsonNode = objectMapper.readTree(message);
                         if ("ticker".equals(jsonNode.path("type").asText())) {
-                            TickerData tickerData = parseTickerData(jsonNode);
+                            TickerData tickerData = coinBaseExchangeParser.parseTickerData(jsonNode);
                             if (tickerData != null && tickerDataConsumer != null) {
                                 tickerDataConsumer.accept(tickerData);
                             }
@@ -118,43 +119,6 @@ public class CoinbaseExchangeWebSocketClient implements WebSocketExchangeClient 
         } catch (Exception e) {
             log.error("Error creating subscription message for Coinbase", e);
             return "{}";
-        }
-    }
-
-    private TickerData parseTickerData(JsonNode data) {
-        try {
-            String productId = data.path("product_id").asText();
-            String formattedSymbol = productId.replace("-", "");
-
-            return new TickerData(
-                    "COINBASE_EXCHANGE",
-                    formattedSymbol,
-                    new BigDecimal(data.path("price").asText("0")),
-                    BigDecimal.ZERO, // highPrice - нет в Coinbase ticker
-                    BigDecimal.ZERO, // lowPrice - нет в Coinbase ticker
-                    new BigDecimal(data.path("volume_24h").asText("0")),
-                    BigDecimal.ZERO, // priceChangePercent - нет в Coinbase ticker
-                    BigDecimal.ZERO, // openPrice - нет в Coinbase ticker
-                    calculateWeightedAvg(data), // средняя цена из bid/ask
-                    0L, // count - нет в Coinbase ticker
-                    Instant.parse(data.path("time").asText())
-            );
-        } catch (Exception e) {
-            log.error("Error parsing ticker data from Coinbase: {}", data, e);
-            return null;
-        }
-    }
-
-    private BigDecimal calculateWeightedAvg(JsonNode data) {
-        try {
-            BigDecimal bid = new BigDecimal(data.path("best_bid").asText("0"));
-            BigDecimal ask = new BigDecimal(data.path("best_ask").asText("0"));
-            if (bid.compareTo(BigDecimal.ZERO) > 0 && ask.compareTo(BigDecimal.ZERO) > 0) {
-                return bid.add(ask).divide(new BigDecimal("2"));
-            }
-            return new BigDecimal(data.path("price").asText("0"));
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
         }
     }
 

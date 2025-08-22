@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
@@ -25,25 +27,23 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class BinanceWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
-    private final String websocketUrl;
+
     private final BinanceSymbolServiceImpl binanceSymbolService;
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
+    private final BinanceWebSocketParser binanceWebSocketParser;
 
-    private final boolean binanceWebSocketClientEnabled;
+    @Value("${binance.websocket-enabled}")
+    private boolean binanceWebSocketClientEnabled;
+
+    @Value("${binance.websocket-url}")
+    private String websocketUrl;
+
     private List<String> cryptocurrency;
-
-    public BinanceWebSocketClient(@Value("${binance.websocket-url}") String websocketUrl,
-                                  BinanceSymbolServiceImpl binanceSymbolService,
-                                  @Value("${binance.websocket-enabled}") boolean binanceWebSocketClientEnabled) {
-        this.websocketUrl = websocketUrl;
-        this.binanceSymbolService = binanceSymbolService;
-        this.objectMapper = new ObjectMapper();
-        this.binanceWebSocketClientEnabled = binanceWebSocketClientEnabled;
-    }
 
     @PostConstruct
     public void init(){
@@ -96,7 +96,7 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
 //                            String price = dataNode.get("c").asText();
 //                            log.info("Processing ticker data: symbol={}, price={}", symbol, price);
                             
-                            TickerData tickerData = parseTickerData(dataNode);
+                            TickerData tickerData = binanceWebSocketParser.parseTickerData(dataNode);
                             if (tickerData != null && tickerDataConsumer != null) {
 //                                log.info("Sending ticker data to consumer: {}", tickerData.cryptocurrency());
                                 tickerDataConsumer.accept(tickerData);
@@ -155,30 +155,6 @@ public class BinanceWebSocketClient implements WebSocketExchangeClient {
             }
         } catch (Exception e) {
             log.error("Failed to subscribe to tickers", e);
-        }
-    }
-
-    private TickerData parseTickerData(JsonNode jsonNode) {
-        try {
-            long eventTime = jsonNode.get("E").asLong();
-            Instant eventInstant = Instant.ofEpochMilli(eventTime);
-            return new TickerData(
-                    "BINANCE",
-                    jsonNode.get("s").asText(),
-                    new BigDecimal(jsonNode.get("c").asText()),
-                    new BigDecimal(jsonNode.get("h").asText()),
-                    new BigDecimal(jsonNode.get("l").asText()),
-                    new BigDecimal(jsonNode.get("v").asText()),
-                    new BigDecimal(jsonNode.get("P").asText()),
-                    jsonNode.has("o") ? new BigDecimal(jsonNode.get("o").asText()) : BigDecimal.ZERO,
-                    jsonNode.has("w") ? new BigDecimal(jsonNode.get("w").asText()) : BigDecimal.ZERO,
-                    jsonNode.has("n") ? jsonNode.get("n").asLong() : 0L,
-                    eventInstant
-            );
-        } catch (Exception e) {
-            log.error("Error parsing ticker data from JSON: {}", jsonNode, e);
-            e.printStackTrace();
-            return null;
         }
     }
 

@@ -3,6 +3,8 @@ package org.fetcher.client.kraken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fetcher.client.WebSocketExchangeClient;
 import org.fetcher.domain.TickerData;
@@ -20,25 +22,23 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class KrakenWebSocketClient implements WebSocketExchangeClient {
 
     private final ObjectMapper objectMapper;
     private final KrakenSymbolServiceImpl krakenSymbolService;
-    private final String websocketUrl;
+    private final KrakenWebSocketParser krakenWebSocketParser;
     private WebSocketClient webSocketClient;
     private Consumer<TickerData> tickerDataConsumer;
 
-    private final boolean krakenWebSocketClientEnabled;
+    @Value("${kraken.websocket-enabled:false}")
+    private boolean krakenWebSocketClientEnabled;
+
+    @Value("${kraken.websocket-url:wss://ws.kraken.com}")
+    private String websocketUrl;
+
     private List<String> cryptocurrency;
 
-    public KrakenWebSocketClient(@Value("${kraken.websocket-url:wss://ws.kraken.com}") String websocketUrl,
-                                 KrakenSymbolServiceImpl krakenSymbolService,
-                                 @Value("${kraken.websocket-enabled:false}") boolean krakenWebSocketClientEnabled) {
-        this.websocketUrl = websocketUrl;
-        this.krakenSymbolService = krakenSymbolService;
-        this.objectMapper = new ObjectMapper();
-        this.krakenWebSocketClientEnabled = krakenWebSocketClientEnabled;
-    }
 
     @PostConstruct
     public void init(){
@@ -64,7 +64,8 @@ public class KrakenWebSocketClient implements WebSocketExchangeClient {
                         if (jsonNode.isArray() && jsonNode.size() >= 2) {
                             JsonNode data = jsonNode.get(1);
                             if (data.has("c") && data.has("h") && data.has("l")) {
-                                TickerData tickerData = parseTickerData(data, jsonNode.get(0).asInt());
+                                String symbol = getСryptocurrencyByChannelId(jsonNode.get(0).asInt());
+                                TickerData tickerData = krakenWebSocketParser.parseTickerData(data,symbol);
                                 if (tickerData != null && tickerDataConsumer != null) {
                                     tickerDataConsumer.accept(tickerData);
                                 }
@@ -94,6 +95,13 @@ public class KrakenWebSocketClient implements WebSocketExchangeClient {
         }
     }
 
+    private String getСryptocurrencyByChannelId(int channelId) {
+        if (cryptocurrency.size() > 0) {
+            return cryptocurrency.get(0).replace("BTC", "XBT");
+        }
+        return "XBT/USD";
+    }
+
     private String createSubscriptionMessage() {
         try {
             String[] pairs = new String[cryptocurrency.size()];
@@ -109,51 +117,6 @@ public class KrakenWebSocketClient implements WebSocketExchangeClient {
         } catch (Exception e) {
             log.error("Error creating subscription message", e);
             return "{}";
-        }
-    }
-
-    private TickerData parseTickerData(JsonNode data, int channelId) {
-        try {
-            String symbol = getСryptocurrencyByChannelId(channelId);
-
-            return new TickerData(
-                    "KRAKEN",
-                    symbol,
-                    new BigDecimal(data.get("c").get(0).asText()),
-                    new BigDecimal(data.get("h").get(1).asText()),
-                    new BigDecimal(data.get("l").get(1).asText()),
-                    new BigDecimal(data.get("v").get(1).asText()),
-                    calculatePriceChangePercent(data),
-                    data.has("o") ? new BigDecimal(data.get("o").asText()) : BigDecimal.ZERO,
-                    data.has("p") && data.get("p").isArray() && data.get("p").size() > 1 
-                        ? new BigDecimal(data.get("p").get(1).asText()) : BigDecimal.ZERO,
-                    data.has("t") && data.get("t").isArray() && data.get("t").size() > 1 
-                        ? data.get("t").get(1).asLong() : 0L,
-                    Instant.now()
-            );
-        } catch (Exception e) {
-            log.error("Error parsing ticker data from JSON: {}", data, e);
-            return null;
-        }
-    }
-
-    private String getСryptocurrencyByChannelId(int channelId) {
-        if (cryptocurrency.size() > 0) {
-            return cryptocurrency.get(0).replace("BTC", "XBT");
-        }
-        return "XBT/USD";
-    }
-
-    private BigDecimal calculatePriceChangePercent(JsonNode data) {
-        try {
-            BigDecimal currentPrice = new BigDecimal(data.get("c").get(0).asText());
-            BigDecimal openPrice = new BigDecimal(data.get("o").asText());
-
-            return currentPrice.subtract(openPrice)
-                    .divide(openPrice, 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(new BigDecimal("100"));
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
         }
     }
 
