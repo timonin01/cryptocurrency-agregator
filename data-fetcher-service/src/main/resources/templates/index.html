@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crypto Tracker Pro — Multi-Exchange</title>
+  <title>Crypto Tracker — Multi-Exchange</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -500,7 +500,7 @@
     <div class="container">
       <a class="navbar-brand" href="/">
         <i class="fas fa-chart-line me-2"></i>
-        Crypto Tracker Pro
+        Crypto Tracker
       </a>
       <div class="navbar-nav ms-auto">
         <a class="nav-link active" href="/">
@@ -520,7 +520,7 @@
     <div class="container">
       <h1 class="fade-in">
         <i class="fas fa-rocket me-3 float"></i>
-        Crypto Tracker Pro
+        Crypto Tracker
       </h1>
       <p class="slide-in">
         Профессиональная платформа для отслеживания криптовалют в реальном времени
@@ -588,6 +588,17 @@
     <div class="spinner-wrap" id="spinnerWrap">
       <div class="loading-spinner"></div>
       <p class="mt-3">Загрузка данных...</p>
+    </div>
+
+    <!-- Контейнер для статуса бирж -->
+    <div class="mb-4">
+      <h5 class="text-white mb-3">
+        <i class="fas fa-server me-2"></i>
+        Статус бирж
+      </h5>
+      <div id="exchangeStatus">
+        <div class="text-white-50">Загрузка статуса...</div>
+      </div>
     </div>
 
     <!-- Контейнер для криптовалют -->
@@ -1236,9 +1247,61 @@
       }
     }
 
+    // Функция для загрузки статуса бирж
+    async function loadExchangeStatus() {
+      try {
+        const response = await fetch('/api/v1/exchanges/status');
+        const status = await response.json();
+        
+        // Обновляем статус в интерфейсе
+        updateExchangeStatusDisplay(status);
+      } catch (error) {
+        console.error('Ошибка при загрузке статуса бирж:', error);
+      }
+    }
+
+    // Функция для обновления отображения статуса бирж
+    function updateExchangeStatusDisplay(status) {
+      const statusContainer = document.getElementById('exchangeStatus');
+      if (!statusContainer) return;
+      
+      let statusHtml = '<div class="row">';
+      
+      for (const [exchange, info] of Object.entries(status)) {
+        const isEnabled = info.enabled;
+        const isConnected = info.websocketConnected;
+        const tickerCount = info.tickerCount;
+        const lastUpdate = info.lastUpdate;
+        
+        const statusClass = isEnabled ? (isConnected ? 'success' : 'warning') : 'danger';
+        const statusText = isEnabled ? (isConnected ? 'Подключено' : 'REST API') : 'Отключено';
+        
+        statusHtml += `
+          <div class="col-md-3 mb-2">
+            <div class="card border-${statusClass}">
+              <div class="card-body p-2">
+                <h6 class="card-title mb-1">${getExchangeDisplayName(exchange)}</h6>
+                <small class="text-${statusClass}">
+                  <i class="fas fa-circle me-1"></i>${statusText}
+                </small>
+                <br>
+                <small class="text-muted">
+                  Тикеров: ${tickerCount}
+                </small>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      statusHtml += '</div>';
+      statusContainer.innerHTML = statusHtml;
+    }
+
     // Загрузить данные при загрузке страницы
     document.addEventListener('DOMContentLoaded', () => {
       loadData();
+      loadExchangeStatus();
       
       // Добавляем пульсацию к кнопке обновления
       const refreshBtn = document.querySelector('.btn-modern');
@@ -1247,6 +1310,9 @@
     
     // Обновлять каждые 15 секунд
     setInterval(loadData, 15000);
+    
+    // Обновлять статус бирж каждые 30 секунд
+    setInterval(loadExchangeStatus, 30000);
 </script>
 </body>
 </html>

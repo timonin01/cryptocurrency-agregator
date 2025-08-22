@@ -65,18 +65,16 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
             return Mono.empty();
         }
 
-        // Проверяем, есть ли символ в списке доступных
         if (!cryptocurrency.contains(symbol)) {
             log.debug("Symbol {} not found in available symbols, trying to format", symbol);
         }
-
         String coinbaseSymbol = formatSymbolToCoinbase(symbol);
         if (coinbaseSymbol == null) {
             log.warn("Invalid symbol format: {}", symbol);
             return Mono.empty();
         }
         
-        log.info("Fetching ticker for symbol: {} -> {}", symbol, coinbaseSymbol);
+//        log.info("Fetching ticker for symbol: {} -> {}", symbol, coinbaseSymbol);
 
         return Mono.zip(
                 getTickerData(coinbaseSymbol),
@@ -87,7 +85,7 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
 
             return new TickerData(
                     getExchangeName(),
-                    symbol,
+                    symbol.replace("-",""),
                     parseBigDecimal(tickerResponse.price()),
                     parseBigDecimal(statsResponse.high()),
                     parseBigDecimal(statsResponse.low()),
@@ -114,7 +112,7 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
 
 
     private Mono<CoinbaseTickerResponse> getTickerData(String coinbaseSymbol) {
-        log.debug("Fetching ticker data for symbol: {}", coinbaseSymbol);
+//        log.debug("Fetching ticker data for symbol: {}", coinbaseSymbol);
         return webClient.get()
                 .uri("/products/{product_id}/ticker", coinbaseSymbol)
                 .retrieve()
@@ -127,7 +125,7 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
     }
 
     private Mono<CoinbaseExchangeStatsResponse> getStatsData(String coinbaseSymbol) {
-        log.debug("Fetching stats data for symbol: {}", coinbaseSymbol);
+//        log.debug("Fetching stats data for symbol: {}", coinbaseSymbol);
         return webClient.get()
                 .uri("/products/{product_id}/stats", coinbaseSymbol)
                 .retrieve()
@@ -153,7 +151,7 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
             quote = "USD";
         } else if (symbol.endsWith("USDT")) {
             base = symbol.substring(0, symbol.length() - 4);
-            quote = "USD"; // Coinbase использует USD вместо USDT
+            quote = "USD";
         } else if (symbol.endsWith("BTC")) {
             base = symbol.substring(0, symbol.length() - 3);
             quote = "BTC";
@@ -174,8 +172,7 @@ public class CoinbaseExchangeRestClient implements ExchangeClient {
                 return null;
             }
         }
-        
-        log.debug("Formatted symbol {} -> {}-{}", symbol, base, quote);
+//        log.debug("Formatted symbol {} -> {}-{}", symbol, base, quote);
         return base + "-" + quote;
     }
 

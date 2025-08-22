@@ -16,5 +16,6 @@ public class StatusResponse {
     private final boolean binanceConnected;
     private final boolean krakenConnected;
     private final boolean bybitConnected;
+    private final boolean coinbaseExchange;
 
 }

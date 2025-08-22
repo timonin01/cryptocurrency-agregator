@@ -40,7 +40,8 @@ public class DataController {
             dataFetcherService.getAvailableExchanges(),
             dataFetcherService.isWebSocketConnected("binance".toUpperCase()),
             dataFetcherService.isWebSocketConnected("kraken".toUpperCase()),
-            dataFetcherService.isWebSocketConnected("bybit".toUpperCase())
+            dataFetcherService.isWebSocketConnected("bybit".toUpperCase()),
+                dataFetcherService.isWebSocketConnected("coinbase".toUpperCase())
         );
     }
 
